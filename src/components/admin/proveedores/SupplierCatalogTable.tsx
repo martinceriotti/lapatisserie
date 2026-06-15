@@ -56,6 +56,7 @@ import {
   Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ImportPricelist } from "./ImportPricelist";
 
 type RawMaterial = { id: string; name: string; unit: string; current_price: number };
 
@@ -246,11 +247,15 @@ function CatalogItemForm({
 export function SupplierCatalogTable({
   supplierId,
   supplierName,
+  parserType,
+  ivaRate,
   initialData,
   rawMaterials,
 }: {
   supplierId: string;
   supplierName: string;
+  parserType: string | null;
+  ivaRate: number;
   initialData: CatalogItem[];
   rawMaterials: RawMaterial[];
 }) {
@@ -337,6 +342,13 @@ export function SupplierCatalogTable({
             className="pl-9"
           />
         </div>
+        <ImportPricelist
+          supplierId={supplierId}
+          supplierName={supplierName}
+          parserType={parserType}
+          ivaRate={ivaRate}
+          existingSkus={new Set(initialData.map((i) => i.supplier_sku))}
+        />
         <Button
           onClick={() => {
             setEditing(null);

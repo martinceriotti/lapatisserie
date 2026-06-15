@@ -12,6 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -47,6 +54,8 @@ type Supplier = {
   address: string | null;
   notes: string | null;
   is_active: boolean;
+  default_iva_rate: number;
+  parser_type: string | null;
   catalog_count: { count: number }[] | null;
 };
 
@@ -63,9 +72,19 @@ function SupplierForm({
   loading: boolean;
   errors: FormErrors | null;
 }) {
+  const [ivaRate, setIvaRate] = useState<string>(
+    String(defaultValues?.default_iva_rate ?? 0.21)
+  );
+  const [parserType, setParserType] = useState<string>(
+    defaultValues?.parser_type ?? ""
+  );
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    onSubmit(new FormData(e.currentTarget));
+    const fd = new FormData(e.currentTarget);
+    fd.set("default_iva_rate", ivaRate);
+    fd.set("parser_type", parserType);
+    onSubmit(fd);
   }
 
   return (
@@ -117,6 +136,37 @@ function SupplierForm({
           defaultValue={defaultValues?.address ?? ""}
           placeholder="Ej: Av. Pellegrini 1234, Rosario"
         />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
+          <Label>Formato de lista</Label>
+          <Select value={parserType} onValueChange={(v) => { if (v !== null) setParserType(v); }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sin formato automático" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Sin formato automático</SelectItem>
+              <SelectItem value="cepro">CEPRO</SelectItem>
+              <SelectItem value="drovandi">Drovandi</SelectItem>
+              <SelectItem value="lodiser">Lodiser</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">Para importar PDFs automáticamente</p>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Tasa de IVA</Label>
+          <Select value={ivaRate} onValueChange={(v) => { if (v !== null) setIvaRate(v); }}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0.105">10.5%</SelectItem>
+              <SelectItem value="0.21">21%</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">Para calcular precio neto/final</p>
+        </div>
       </div>
 
       <div className="space-y-1.5">

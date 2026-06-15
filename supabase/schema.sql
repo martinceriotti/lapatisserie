@@ -35,15 +35,17 @@ create table raw_materials (
 -- ─── Proveedores ────────────────────────────────────────────
 
 create table suppliers (
-  id         uuid primary key default uuid_generate_v4(),
-  name       text not null,
-  phone      text,
-  email      text,
-  address    text,
-  notes      text,
-  is_active  boolean not null default true,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  id                uuid primary key default uuid_generate_v4(),
+  name              text not null,
+  phone             text,
+  email             text,
+  address           text,
+  notes             text,
+  is_active         boolean not null default true,
+  default_iva_rate  numeric(5,4) not null default 0.21,
+  parser_type       text check (parser_type in ('cepro', 'drovandi', 'lodiser')),
+  created_at        timestamptz not null default now(),
+  updated_at        timestamptz not null default now()
 );
 
 create table supplier_catalog (

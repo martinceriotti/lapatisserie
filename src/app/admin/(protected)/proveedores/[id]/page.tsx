@@ -73,6 +73,8 @@ export default async function SupplierDetailPage({
       <SupplierCatalogTable
         supplierId={supplier.id}
         supplierName={supplier.name}
+        parserType={supplier.parser_type ?? null}
+        ivaRate={supplier.default_iva_rate ?? 0.21}
         initialData={catalog}
         rawMaterials={rawMaterials}
       />
