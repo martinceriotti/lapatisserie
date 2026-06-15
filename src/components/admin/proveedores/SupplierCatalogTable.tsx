@@ -206,7 +206,7 @@ function CatalogItemForm({
 
         <div className="space-y-1.5">
           <Label>Vincular a materia prima</Label>
-          <Select value={linkedId} onValueChange={(v) => { if (v !== undefined) setLinkedId(v === "none" ? "" : v); }}>
+          <Select value={linkedId} onValueChange={(v) => { if (v !== null) setLinkedId(v === "none" ? "" : v); }}>
             <SelectTrigger>
               <SelectValue placeholder="Sin vincular" />
             </SelectTrigger>
