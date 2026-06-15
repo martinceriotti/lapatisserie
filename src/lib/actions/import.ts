@@ -66,7 +66,11 @@ export async function importParsedItems(
     (existing ?? []).map((e) => [e.supplier_sku, e.raw_material_id])
   );
 
-  const rows = items.map((item) => ({
+  // Safety-net dedup: PostgreSQL upsert fails if the same conflict key appears twice in one batch
+  const uniqueItems = new Map<string, ParsedItem>();
+  for (const item of items) uniqueItems.set(item.supplier_sku, item);
+
+  const rows = [...uniqueItems.values()].map((item) => ({
     supplier_id: supplierId,
     supplier_sku: item.supplier_sku,
     product_name: item.product_name,

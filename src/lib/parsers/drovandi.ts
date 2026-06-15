@@ -60,9 +60,14 @@ export function parseDrovandi(text: string, ivaRate: number): ParseResult {
     items.push({ supplier_sku: sku, product_name: productName, unit_description: unitDescription, price_net: priceNet, price_final: round2(priceFinal) });
   }
 
-  if (items.length === 0) {
+  // Deduplicate: if same SKU appears more than once (e.g. repeated in header/footer), last wins
+  const seen = new Map<string, ParsedItem>();
+  for (const item of items) seen.set(item.supplier_sku, item);
+  const deduped = [...seen.values()];
+
+  if (deduped.length === 0) {
     warnings.push("No se encontraron filas con el formato Drovandi. Revisá el PDF en el texto crudo.");
   }
 
-  return { items, rawText: text, warnings };
+  return { items: deduped, rawText: text, warnings };
 }

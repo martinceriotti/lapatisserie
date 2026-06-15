@@ -20,7 +20,7 @@ function Logo({ className }: { className?: string }) {
       alt="La Patisserie — Tienda de Dulces"
       width={360}
       height={100}
-      className={className}
+      className={cn("mix-blend-multiply", className)}
       priority
       onError={() => setImgError(true)}
     />

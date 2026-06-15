@@ -13,8 +13,8 @@ export function parseCepro(text: string): ParseResult {
   for (const rawLine of text.split("\n")) {
     const line = rawLine.trim();
 
-    // Must start with a 5-digit SKU
-    const skuMatch = line.match(/^(\d{5})\b/);
+    // Must start with a 5-digit SKU (allow leading whitespace)
+    const skuMatch = line.match(/^\s*(\d{5})\b/);
     if (!skuMatch) continue;
 
     const sku = skuMatch[1];
