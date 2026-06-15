@@ -10,6 +10,7 @@ import {
   BookOpen,
   ShoppingBag,
   ClipboardList,
+  Truck,
   LogOut,
   ChevronRight,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/materias-primas", label: "Materias Primas", icon: Package },
+  { href: "/admin/proveedores", label: "Proveedores", icon: Truck },
   { href: "/admin/recetas", label: "Recetas", icon: BookOpen },
   { href: "/admin/productos", label: "Productos", icon: ShoppingBag },
   { href: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },

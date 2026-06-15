@@ -6,6 +6,7 @@ import {
   updateMateriaPrima,
   deleteMateriaPrima,
 } from "@/lib/actions/materias-primas";
+import { applySupplierPrice } from "@/lib/actions/suppliers";
 import {
   UNITS,
   CATEGORIES,
@@ -49,19 +50,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { Plus, Pencil, Trash2, ChevronDown, Search, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronDown, Search, Loader2, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+type Supplier = { id: string; name: string };
 
 type PriceHistory = {
   id: string;
   price: number;
   effective_date: string;
   notes: string | null;
+  supplier: Supplier | null;
+};
+
+type SupplierOffer = {
+  id: string;
+  supplier_sku: string;
+  price_final: number;
+  price_net: number | null;
+  unit_description: string | null;
+  list_date: string;
+  supplier: Supplier | null;
 };
 
 type MateriaPrima = {
@@ -72,9 +81,9 @@ type MateriaPrima = {
   category: typeof CATEGORIES[number];
   current_price: number;
   price_per_gram: number;
-  supplier: string | null;
   is_active: boolean;
   price_history: PriceHistory[];
+  supplier_offers: SupplierOffer[];
 };
 
 function formatPrice(n: number) {
@@ -196,17 +205,6 @@ function MateriaPrimaForm({
           </Select>
         </div>
 
-        {/* Proveedor */}
-        <div className="col-span-2 space-y-1.5">
-          <Label htmlFor="supplier">Proveedor (opcional)</Label>
-          <Input
-            id="supplier"
-            name="supplier"
-            defaultValue={defaultValues?.supplier ?? ""}
-            placeholder="Ej: Distribuidora San Martín"
-          />
-        </div>
-
         {/* Descripción */}
         <div className="col-span-2 space-y-1.5">
           <Label htmlFor="description">Notas (opcional)</Label>
@@ -230,6 +228,130 @@ function MateriaPrimaForm({
   );
 }
 
+function ExpandedRow({ m, onApplyPrice }: {
+  m: MateriaPrima;
+  onApplyPrice: (supplierId: string, price: number, supplierName: string) => void;
+}) {
+  const hasOffers = m.supplier_offers?.length > 0;
+  const hasHistory = m.price_history?.length > 0;
+
+  if (!hasOffers && !hasHistory) return null;
+
+  const sortedHistory = [...(m.price_history ?? [])]
+    .sort((a, b) => new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime())
+    .slice(0, 8);
+
+  const sortedOffers = [...(m.supplier_offers ?? [])]
+    .sort((a, b) => a.price_final - b.price_final);
+
+  return (
+    <TableRow className="bg-muted/20 hover:bg-muted/20">
+      <TableCell colSpan={8} className="py-0">
+        <div className="px-4 py-4 space-y-4">
+          {/* Supplier offers */}
+          {hasOffers && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Precios por proveedor
+              </p>
+              <div className="space-y-1.5">
+                {sortedOffers.map((offer, i) => {
+                  const isCheapest = i === 0 && sortedOffers.length > 1;
+                  const isActive = Math.abs(offer.price_final - m.current_price) < 0.01;
+                  return (
+                    <div
+                      key={offer.id}
+                      className={cn(
+                        "flex items-center gap-3 text-sm py-1.5 px-3 rounded-lg",
+                        isCheapest && "bg-emerald-50 border border-emerald-100",
+                        isActive && !isCheapest && "bg-accent/50"
+                      )}
+                    >
+                      <span className="font-medium w-36 truncate">
+                        {offer.supplier?.name ?? "Proveedor"}
+                      </span>
+                      <span className="text-muted-foreground text-xs w-20">
+                        SKU: {offer.supplier_sku}
+                      </span>
+                      {offer.unit_description && (
+                        <span className="text-muted-foreground text-xs w-20">
+                          {offer.unit_description}
+                        </span>
+                      )}
+                      <span className="font-mono font-semibold">
+                        {formatPrice(offer.price_final)}
+                      </span>
+                      <span className="text-muted-foreground text-xs">
+                        Lista: {formatDate(offer.list_date)}
+                      </span>
+                      {isCheapest && (
+                        <Badge className="bg-emerald-100 text-emerald-700 border-0 text-xs">
+                          Más barato
+                        </Badge>
+                      )}
+                      {isActive ? (
+                        <span className="ml-auto flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          Precio activo
+                        </span>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="ml-auto h-7 text-xs"
+                          onClick={() => onApplyPrice(
+                            offer.supplier!.id,
+                            offer.price_final,
+                            offer.supplier!.name
+                          )}
+                          disabled={!offer.supplier}
+                        >
+                          Usar este precio
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Price history */}
+          {hasHistory && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Historial de precios
+              </p>
+              <div className="space-y-1">
+                {sortedHistory.map((h) => (
+                  <div key={h.id} className="flex items-center gap-4 text-sm">
+                    <span className="text-muted-foreground w-24">
+                      {formatDate(h.effective_date)}
+                    </span>
+                    <span className="font-mono font-medium">
+                      {formatPrice(h.price)}
+                    </span>
+                    {h.supplier && (
+                      <span className="text-muted-foreground text-xs">
+                        {h.supplier.name}
+                      </span>
+                    )}
+                    {h.notes && (
+                      <span className="text-muted-foreground text-xs">
+                        {h.notes}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </TableCell>
+    </TableRow>
+  );
+}
+
 export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) {
   const [data, setData] = useState<MateriaPrima[]>(initialData);
   const [search, setSearch] = useState("");
@@ -238,7 +360,8 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
   const [editing, setEditing] = useState<MateriaPrima | null>(null);
   const [deleting, setDeleting] = useState<MateriaPrima | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors | null>(null);
-  const [expandedHistory, setExpandedHistory] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [applyingPrice, setApplyingPrice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const filtered = data.filter((m) => {
@@ -248,6 +371,9 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
     const matchCat = categoryFilter === "all" || m.category === categoryFilter;
     return matchSearch && matchCat;
   });
+
+  const hasExpandableContent = (m: MateriaPrima) =>
+    (m.price_history?.length ?? 0) > 0 || (m.supplier_offers?.length ?? 0) > 0;
 
   const handleCreate = useCallback(
     (fd: FormData) => {
@@ -263,7 +389,6 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
         }
         setOpenForm(false);
         setFormErrors(null);
-        // Refresh data by re-fetching (optimistic update not needed, page revalidates)
         window.location.reload();
       });
     },
@@ -299,6 +424,27 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
       window.location.reload();
     });
   }, [deleting]);
+
+  const handleApplyPrice = useCallback(
+    (materiaPrimaId: string, supplierId: string, price: number, supplierName: string) => {
+      setApplyingPrice(materiaPrimaId);
+      startTransition(async () => {
+        const result = await applySupplierPrice(
+          materiaPrimaId,
+          supplierId,
+          price,
+          `Precio de ${supplierName}`
+        );
+        setApplyingPrice(null);
+        if ("error" in result) {
+          alert(typeof result.error === "string" ? result.error : "Error al actualizar precio");
+          return;
+        }
+        window.location.reload();
+      });
+    },
+    []
+  );
 
   return (
     <>
@@ -345,7 +491,7 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
           <TableHeader>
             <TableRow className="bg-accent/50 hover:bg-accent/50">
               <TableHead className="font-medium">Nombre</TableHead>
-              <TableHead className="font-medium">Proveedor</TableHead>
+              <TableHead className="font-medium">Proveedor activo</TableHead>
               <TableHead className="font-medium">Categoría</TableHead>
               <TableHead className="font-medium text-right">Precio</TableHead>
               <TableHead className="font-medium text-right">$/g</TableHead>
@@ -364,128 +510,110 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
                 </TableCell>
               </TableRow>
             )}
-            {filtered.map((m) => (
-              <>
-                <TableRow
-                  key={m.id}
-                  className={cn(!m.is_active && "opacity-50")}
-                >
-                  <TableCell className="font-medium">{m.name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {m.supplier ?? <span className="text-muted-foreground/40">—</span>}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">
-                      {CATEGORY_LABELS[m.category]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {formatPrice(m.current_price)}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-xs text-muted-foreground">
-                    {m.price_per_gram != null
-                      ? `$${Number(m.price_per_gram).toFixed(4)}`
-                      : "—"}
-                  </TableCell>
-                  <TableCell className="text-sm">{m.unit}</TableCell>
-                  <TableCell>
-                    <span
-                      className={cn(
-                        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-                        m.is_active
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {m.is_active ? "Activo" : "Inactivo"}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      {m.price_history?.length > 0 && (
+            {filtered.map((m) => {
+              const lastSupplier = m.price_history
+                ?.filter((h) => h.supplier)
+                .sort((a, b) => new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime())[0]
+                ?.supplier;
+
+              return (
+                <>
+                  <TableRow
+                    key={m.id}
+                    className={cn(
+                      !m.is_active && "opacity-50",
+                      applyingPrice === m.id && "opacity-60 pointer-events-none"
+                    )}
+                  >
+                    <TableCell className="font-medium">{m.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {lastSupplier
+                        ? <span className="text-foreground/80">{lastSupplier.name}</span>
+                        : <span className="text-muted-foreground/40">—</span>
+                      }
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">
+                        {CATEGORY_LABELS[m.category]}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm">
+                      {applyingPrice === m.id
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin ml-auto" />
+                        : formatPrice(m.current_price)
+                      }
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                      {m.price_per_gram != null
+                        ? `$${Number(m.price_per_gram).toFixed(4)}`
+                        : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm">{m.unit}</TableCell>
+                    <TableCell>
+                      <span
+                        className={cn(
+                          "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+                          m.is_active
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {m.is_active ? "Activo" : "Inactivo"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {hasExpandableContent(m) && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            onClick={() => setExpandedId(expandedId === m.id ? null : m.id)}
+                            title="Ver precios y historial"
+                          >
+                            <ChevronDown
+                              className={cn(
+                                "w-4 h-4 transition-transform",
+                                expandedId === m.id && "rotate-180"
+                              )}
+                            />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                          onClick={() =>
-                            setExpandedHistory(
-                              expandedHistory === m.id ? null : m.id
-                            )
-                          }
-                          title="Ver historial de precios"
+                          onClick={() => {
+                            setEditing(m);
+                            setFormErrors(null);
+                          }}
                         >
-                          <ChevronDown
-                            className={cn(
-                              "w-4 h-4 transition-transform",
-                              expandedHistory === m.id && "rotate-180"
-                            )}
-                          />
+                          <Pencil className="w-3.5 h-3.5" />
                         </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                        onClick={() => {
-                          setEditing(m);
-                          setFormErrors(null);
-                        }}
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => setDeleting(m)}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-
-                {/* Price history row */}
-                {expandedHistory === m.id && m.price_history?.length > 0 && (
-                  <TableRow key={`${m.id}-history`} className="bg-muted/30">
-                    <TableCell colSpan={8} className="py-0">
-                      <div className="px-4 py-3">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                          Historial de precios
-                        </p>
-                        <div className="space-y-1">
-                          {[...m.price_history]
-                            .sort(
-                              (a, b) =>
-                                new Date(b.effective_date).getTime() -
-                                new Date(a.effective_date).getTime()
-                            )
-                            .slice(0, 8)
-                            .map((h) => (
-                              <div
-                                key={h.id}
-                                className="flex items-center gap-4 text-sm"
-                              >
-                                <span className="text-muted-foreground w-24">
-                                  {formatDate(h.effective_date)}
-                                </span>
-                                <span className="font-mono font-medium">
-                                  {formatPrice(h.price)}
-                                </span>
-                                {h.notes && (
-                                  <span className="text-muted-foreground text-xs">
-                                    {h.notes}
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => setDeleting(m)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
-                )}
-              </>
-            ))}
+
+                  {expandedId === m.id && (
+                    <ExpandedRow
+                      key={`${m.id}-expanded`}
+                      m={m}
+                      onApplyPrice={(supplierId, price, supplierName) =>
+                        handleApplyPrice(m.id, supplierId, price, supplierName)
+                      }
+                    />
+                  )}
+                </>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

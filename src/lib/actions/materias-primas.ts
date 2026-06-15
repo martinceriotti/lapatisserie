@@ -11,7 +11,6 @@ const schema = z.object({
   unit: z.enum(UNITS),
   category: z.enum(CATEGORIES),
   current_price: z.coerce.number().nonnegative("El precio debe ser 0 o mayor"),
-  supplier: z.string().max(200).optional(),
   is_active: z.coerce.boolean().default(true),
 });
 
@@ -73,7 +72,12 @@ export async function getMateriasWithHistory() {
     .select(`
       *,
       price_history:raw_material_price_history(
-        id, price, effective_date, notes
+        id, price, effective_date, notes,
+        supplier:suppliers(id, name)
+      ),
+      supplier_offers:supplier_catalog(
+        id, supplier_sku, price_final, price_net, unit_description, list_date,
+        supplier:suppliers(id, name)
       )
     `)
     .order("name");

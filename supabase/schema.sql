@@ -18,43 +18,102 @@ create table raw_materials (
   unit          raw_material_unit not null default 'g',
   category      raw_material_category not null default 'other',
   current_price numeric(12, 2) not null default 0,
-  -- precio por gramo, calculado automáticamente al actualizar current_price
   price_per_gram numeric(16, 6) generated always as (
     case unit
       when 'kg'     then current_price / 1000
-      when 'g'      then current_price / 1000  -- precio viene x kg
+      when 'g'      then current_price / 1000
       when 'l'      then current_price / 1000
       when 'ml'     then current_price / 1000
-      else current_price  -- unidad, sobre, taza: precio x unidad
+      else current_price
     end
   ) stored,
-  supplier      text,
   is_active     boolean not null default true,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
 
+-- ─── Proveedores ────────────────────────────────────────────
+
+create table suppliers (
+  id         uuid primary key default uuid_generate_v4(),
+  name       text not null,
+  phone      text,
+  email      text,
+  address    text,
+  notes      text,
+  is_active  boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table supplier_catalog (
+  id               uuid primary key default uuid_generate_v4(),
+  supplier_id      uuid not null references suppliers(id) on delete cascade,
+  supplier_sku     text not null,
+  product_name     text not null,
+  unit_description text,
+  price_net        numeric(12, 2),
+  price_final      numeric(12, 2) not null,
+  list_date        date not null default current_date,
+  raw_material_id  uuid references raw_materials(id) on delete set null,
+  notes            text,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  unique (supplier_id, supplier_sku)
+);
+
 create table raw_material_price_history (
   id                uuid primary key default uuid_generate_v4(),
   raw_material_id   uuid not null references raw_materials(id) on delete cascade,
+  supplier_id       uuid references suppliers(id) on delete set null,
   price             numeric(12, 2) not null,
   effective_date    date not null default current_date,
   notes             text,
   created_at        timestamptz not null default now()
 );
 
--- Trigger: guarda historial automáticamente al cambiar el precio
+-- Trigger: registra cambio de precio automáticamente.
+-- Cuando update_raw_material_price_with_supplier() maneja la inserción,
+-- activa el flag 'app.skip_price_trigger' para evitar duplicar el registro.
 create or replace function log_price_change()
 returns trigger as $$
 begin
   if old.current_price <> new.current_price then
-    insert into raw_material_price_history (raw_material_id, price, effective_date)
-    values (new.id, new.current_price, current_date);
+    if current_setting('app.skip_price_trigger', true) = 'true' then
+      perform set_config('app.skip_price_trigger', 'false', true);
+    else
+      insert into raw_material_price_history (raw_material_id, price, effective_date)
+      values (new.id, new.current_price, current_date);
+    end if;
   end if;
   new.updated_at = now();
   return new;
 end;
 $$ language plpgsql;
+
+-- Función para actualizar precio registrando el proveedor en el historial
+create or replace function update_raw_material_price_with_supplier(
+  p_raw_material_id uuid,
+  p_new_price       numeric,
+  p_supplier_id     uuid,
+  p_notes           text default null
+)
+returns void as $$
+begin
+  perform set_config('app.skip_price_trigger', 'true', true);
+
+  update raw_materials
+  set current_price = p_new_price
+  where id = p_raw_material_id;
+
+  if found then
+    insert into raw_material_price_history
+      (raw_material_id, price, effective_date, supplier_id, notes)
+    values
+      (p_raw_material_id, p_new_price, current_date, p_supplier_id, p_notes);
+  end if;
+end;
+$$ language plpgsql security definer;
 
 create trigger raw_material_price_change
   before update on raw_materials
@@ -306,6 +365,8 @@ create table order_items (
 
 alter table raw_materials             enable row level security;
 alter table raw_material_price_history enable row level security;
+alter table suppliers                  enable row level security;
+alter table supplier_catalog           enable row level security;
 alter table overhead_settings          enable row level security;
 alter table recipe_categories          enable row level security;
 alter table recipes                    enable row level security;
@@ -347,3 +408,6 @@ create index on orders (status);
 create index on orders (event_date);
 create index on order_items (order_id);
 create index on raw_material_price_history (raw_material_id, effective_date desc);
+create index on raw_material_price_history (supplier_id);
+create index on supplier_catalog (supplier_id);
+create index on supplier_catalog (raw_material_id);
