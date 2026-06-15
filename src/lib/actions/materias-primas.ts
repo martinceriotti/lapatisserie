@@ -3,21 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
-
-const UNITS = ["g", "kg", "ml", "l", "unidad", "sobre", "taza"] as const;
-const CATEGORIES = ["dairy", "flour", "chocolate", "sugar", "fruit", "packaging", "other"] as const;
-
-const CATEGORY_LABELS: Record<typeof CATEGORIES[number], string> = {
-  dairy: "Lácteos",
-  flour: "Harinas",
-  chocolate: "Chocolate",
-  sugar: "Azúcares",
-  fruit: "Frutas",
-  packaging: "Packaging",
-  other: "Otros",
-};
-
-export { UNITS, CATEGORIES, CATEGORY_LABELS };
+import { UNITS, CATEGORIES } from "@/lib/constants/materias-primas";
 
 const schema = z.object({
   name: z.string().min(1, "Nombre requerido").max(200),

@@ -5,10 +5,13 @@ import {
   createMateriaPrima,
   updateMateriaPrima,
   deleteMateriaPrima,
+} from "@/lib/actions/materias-primas";
+import {
   UNITS,
   CATEGORIES,
   CATEGORY_LABELS,
-} from "@/lib/actions/materias-primas";
+  UNIT_LABELS,
+} from "@/lib/constants/materias-primas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,16 +74,6 @@ type MateriaPrima = {
   price_per_gram: number;
   is_active: boolean;
   price_history: PriceHistory[];
-};
-
-const UNIT_LABELS: Record<typeof UNITS[number], string> = {
-  g: "g (gramos)",
-  kg: "kg (kilogramos)",
-  ml: "ml (mililitros)",
-  l: "L (litros)",
-  unidad: "Unidad",
-  sobre: "Sobre",
-  taza: "Taza",
 };
 
 function formatPrice(n: number) {
