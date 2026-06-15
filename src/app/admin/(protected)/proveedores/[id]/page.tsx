@@ -7,11 +7,13 @@ import { ChevronLeft, Truck, Phone, Mail, MapPin } from "lucide-react";
 export default async function SupplierDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
+
   const [supplier, catalog, rawMaterials] = await Promise.all([
-    getSupplier(params.id).catch(() => null),
-    getSupplierCatalog(params.id),
+    getSupplier(id).catch(() => null),
+    getSupplierCatalog(id),
     getRawMaterialsList(),
   ]);
 
