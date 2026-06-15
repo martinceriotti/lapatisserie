@@ -67,6 +67,7 @@ type CatalogItem = {
   unit_description: string | null;
   price_net: number | null;
   price_final: number;
+  conversion_factor: number;
   list_date: string;
   notes: string | null;
   raw_material: RawMaterial | null;
@@ -106,11 +107,15 @@ function CatalogItemForm({
   const [linkedId, setLinkedId] = useState<string>(
     defaultValues?.raw_material?.id ?? ""
   );
+  const [convFactor, setConvFactor] = useState<string>(
+    String(defaultValues?.conversion_factor ?? 1)
+  );
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     fd.set("raw_material_id", linkedId);
+    fd.set("conversion_factor", convFactor || "1");
     onSubmit(fd);
   }
 
@@ -203,6 +208,22 @@ function CatalogItemForm({
               defaultValues?.list_date ?? new Date().toISOString().split("T")[0]
             }
           />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="ci-conv">Cant. de MP por presentación</Label>
+          <Input
+            id="ci-conv"
+            type="number"
+            step="0.001"
+            min="0.001"
+            value={convFactor}
+            onChange={(e) => setConvFactor(e.target.value)}
+            placeholder="1"
+          />
+          <p className="text-xs text-muted-foreground">
+            Ej: caja de 10 kg → ingresá 10 (si la MP es por kg).
+          </p>
         </div>
 
         <div className="space-y-1.5">
@@ -320,10 +341,11 @@ export function SupplierCatalogTable({
     if (!item.raw_material) return;
     setApplyingId(item.id);
     startTransition(async () => {
+      const effectivePrice = item.price_final / (item.conversion_factor || 1);
       const result = await applySupplierPrice(
         item.raw_material!.id,
         supplierId,
-        item.price_final,
+        effectivePrice,
         `Precio de ${supplierName} — lista ${formatDate(item.list_date)}`
       );
       setApplyingId(null);
@@ -396,9 +418,10 @@ export function SupplierCatalogTable({
                 </TableRow>
               )}
               {filtered.map((item) => {
+                const effectivePrice = item.price_final / (item.conversion_factor || 1);
                 const isApplied =
                   item.raw_material &&
-                  Math.abs(item.price_final - item.raw_material.current_price) < 0.01;
+                  Math.abs(effectivePrice - item.raw_material.current_price) < 0.01;
 
                 return (
                   <TableRow
@@ -414,11 +437,22 @@ export function SupplierCatalogTable({
                     <TableCell className="text-sm text-muted-foreground">
                       {item.unit_description ?? <span className="opacity-40">—</span>}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-sm font-semibold">
-                      {applyingId === item.id
-                        ? <Loader2 className="w-3.5 h-3.5 animate-spin ml-auto" />
-                        : formatPrice(item.price_final)
-                      }
+                    <TableCell className="text-right text-sm">
+                      {applyingId === item.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin ml-auto" />
+                      ) : (
+                        <div className="flex flex-col items-end gap-0.5">
+                          <span className="font-mono font-semibold">
+                            {formatPrice(item.price_final)}
+                          </span>
+                          {item.conversion_factor > 1 && (
+                            <span className="text-xs text-muted-foreground font-mono">
+                              {formatPrice(item.price_final / item.conversion_factor)}/u
+                              <span className="ml-1 opacity-60">÷{item.conversion_factor}</span>
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {formatDate(item.list_date)}
