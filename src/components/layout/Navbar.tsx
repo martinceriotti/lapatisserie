@@ -18,8 +18,8 @@ function Logo({ className }: { className?: string }) {
     <Image
       src="/logo.png"
       alt="La Patisserie — Tienda de Dulces"
-      width={120}
-      height={120}
+      width={360}
+      height={100}
       className={className}
       priority
       onError={() => setImgError(true)}
@@ -64,7 +64,7 @@ export function Navbar() {
 
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
-            <Logo className="h-12 w-auto md:h-14" />
+            <Logo className="h-10 w-auto md:h-12" />
           </Link>
 
           {/* Desktop nav */}
@@ -110,7 +110,7 @@ export function Navbar() {
                   onClick={() => setOpen(false)}
                   className="mb-8 block"
                 >
-                  <Logo className="h-16 w-auto" />
+                  <Logo className="h-12 w-auto" />
                 </Link>
 
                 <div className="flex flex-col gap-1">
