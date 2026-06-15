@@ -131,47 +131,49 @@ create table recipe_ingredients (
 );
 
 -- Vista: costo de cada receta calculado en tiempo real
+-- Separado en CTEs para evitar agregados anidados (no permitidos en PostgreSQL)
 create or replace view recipe_costs as
+with ingredient_totals as (
+  -- Paso 1: sumar el costo de ingredientes por receta
+  select
+    r.id                                            as recipe_id,
+    r.name                                          as recipe_name,
+    r.yield_quantity,
+    r.yield_unit,
+    coalesce(sum(ri.quantity * rm.price_per_gram), 0) as ingredient_cost
+  from recipes r
+  left join recipe_ingredients ri on ri.recipe_id = r.id
+  left join raw_materials rm on rm.id = ri.raw_material_id
+  group by r.id, r.name, r.yield_quantity, r.yield_unit
+),
+overhead_totals as (
+  -- Paso 2: aplicar cada overhead sobre el costo de ingredientes ya calculado
+  select
+    it.recipe_id,
+    coalesce(sum(
+      case os.type
+        when 'percentage'   then it.ingredient_cost * os.value / 100
+        when 'fixed_amount' then os.value
+      end
+    ), 0) as overhead_cost
+  from ingredient_totals it
+  cross join overhead_settings os
+  where os.is_active
+  group by it.recipe_id, it.ingredient_cost
+)
 select
-  r.id                                        as recipe_id,
-  r.name                                      as recipe_name,
-  r.yield_quantity,
-  r.yield_unit,
-  coalesce(sum(
-    ri.quantity * rm.price_per_gram
-  ), 0)                                       as ingredient_cost,
-  coalesce((
-    select sum(
-      case os.type
-        when 'percentage'    then sum(ri2.quantity * rm2.price_per_gram) * os.value / 100
-        when 'fixed_amount'  then os.value
-      end
-    )
-    from overhead_settings os
-    cross join recipe_ingredients ri2
-    join raw_materials rm2 on rm2.id = ri2.raw_material_id
-    where ri2.recipe_id = r.id and os.is_active
-  ), 0)                                       as overhead_cost,
-  coalesce(sum(ri.quantity * rm.price_per_gram), 0) +
-  coalesce((
-    select sum(
-      case os.type
-        when 'percentage'    then sum(ri2.quantity * rm2.price_per_gram) * os.value / 100
-        when 'fixed_amount'  then os.value
-      end
-    )
-    from overhead_settings os
-    cross join recipe_ingredients ri2
-    join raw_materials rm2 on rm2.id = ri2.raw_material_id
-    where ri2.recipe_id = r.id and os.is_active
-  ), 0)                                       as total_cost,
-  case when r.yield_quantity > 0 then
-    (coalesce(sum(ri.quantity * rm.price_per_gram), 0) / r.yield_quantity)
-  else 0 end                                  as cost_per_unit
-from recipes r
-left join recipe_ingredients ri on ri.recipe_id = r.id
-left join raw_materials rm on rm.id = ri.raw_material_id
-group by r.id, r.name, r.yield_quantity, r.yield_unit;
+  it.recipe_id,
+  it.recipe_name,
+  it.yield_quantity,
+  it.yield_unit,
+  it.ingredient_cost,
+  coalesce(ot.overhead_cost, 0)                               as overhead_cost,
+  it.ingredient_cost + coalesce(ot.overhead_cost, 0)         as total_cost,
+  case when it.yield_quantity > 0 then
+    (it.ingredient_cost + coalesce(ot.overhead_cost, 0)) / it.yield_quantity
+  else 0 end                                                  as cost_per_unit
+from ingredient_totals it
+left join overhead_totals ot on ot.recipe_id = it.recipe_id;
 
 -- ─── Categorías de Productos ────────────────────────────────
 
