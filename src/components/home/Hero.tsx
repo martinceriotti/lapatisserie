@@ -12,7 +12,7 @@ const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=Hola%2C%20me%20gusta
 const categories = [
   { label: "Mesas Dulces", emoji: "🍭", href: "/productos?cat=mesas-dulces" },
   { label: "Tortas",       emoji: "🎂", href: "/productos?cat=tortas" },
-  { label: "Cakepops",     emoji: "🍡", href: "/productos?cat=cakepops" },
+  { label: "Cake Pops",    emoji: "🍡", href: "/productos?cat=cake-pops" },
   { label: "Clases",       emoji: "👩‍🍳", href: "/productos?cat=clases" },
 ];
 
@@ -32,25 +32,25 @@ export function Hero() {
       {/* Decorative blobs — brand gradient colors, blurred */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full opacity-20 blur-3xl"
+        className="pointer-events-none absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full opacity-25 blur-3xl"
         style={{
           background:
-            "radial-gradient(circle, oklch(0.60 0.155 350), oklch(0.65 0.14 40))",
+            "radial-gradient(circle, oklch(0.42 0.18 355), oklch(0.58 0.17 18))",
         }}
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl"
+        className="pointer-events-none absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full opacity-20 blur-3xl"
         style={{
           background:
-            "radial-gradient(circle, oklch(0.75 0.13 70), oklch(0.65 0.14 40))",
+            "radial-gradient(circle, oklch(0.72 0.14 65), oklch(0.58 0.17 18))",
         }}
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute top-1/3 right-1/4 w-[300px] h-[300px] rounded-full opacity-10 blur-3xl"
+        className="pointer-events-none absolute top-1/3 right-1/4 w-[300px] h-[300px] rounded-full opacity-15 blur-3xl"
         style={{
-          background: "radial-gradient(circle, oklch(0.93 0.03 350), transparent)",
+          background: "radial-gradient(circle, oklch(0.94 0.025 355), transparent)",
         }}
       />
 

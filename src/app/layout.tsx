@@ -33,12 +33,12 @@ export const metadata: Metadata = {
     template: "%s | La Patisserie",
   },
   description:
-    "Mesas dulces, tortas buttercream y cakepops artesanales para cumpleaños y eventos en Rosario. Personalización total, ingredientes premium.",
+    "Mesas dulces, tortas buttercream y cake pops artesanales para cumpleaños y eventos en Rosario. Personalización total, ingredientes premium.",
   keywords: [
     "pastelería Rosario",
     "mesa dulce Rosario",
     "torta buttercream",
-    "cakepops",
+    "cake pops",
     "torta piñata",
     "cumpleaños niños",
     "repostería artesanal",

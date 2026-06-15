@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Menu, MessageCircle } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -41,9 +42,14 @@ export function Navbar() {
 
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
-            <span className="font-script text-3xl md:text-4xl gradient-brand-text leading-none">
-              La Patisserie
-            </span>
+            <Image
+              src="/logo.png"
+              alt="La Patisserie — Tienda de Dulces"
+              width={120}
+              height={120}
+              className="h-12 w-auto md:h-14"
+              priority
+            />
           </Link>
 
           {/* Desktop nav */}
@@ -87,11 +93,15 @@ export function Navbar() {
                 <Link
                   href="/"
                   onClick={() => setOpen(false)}
-                  className="mb-8"
+                  className="mb-8 block"
                 >
-                  <span className="font-script text-4xl gradient-brand-text">
-                    La Patisserie
-                  </span>
+                  <Image
+                    src="/logo.png"
+                    alt="La Patisserie"
+                    width={100}
+                    height={100}
+                    className="h-16 w-auto"
+                  />
                 </Link>
 
                 <div className="flex flex-col gap-1">
