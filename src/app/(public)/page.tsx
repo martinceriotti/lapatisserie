@@ -1,7 +1,5 @@
+import { Hero } from "@/components/home/Hero";
+
 export default function HomePage() {
-  return (
-    <main>
-      <p>La Patisserie — proximamente</p>
-    </main>
-  );
+  return <Hero />;
 }
