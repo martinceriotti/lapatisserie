@@ -209,7 +209,13 @@ function CatalogItemForm({
           <Label>Vincular a materia prima</Label>
           <Select value={linkedId} onValueChange={(v) => { if (v !== null) setLinkedId(v === "none" ? "" : v); }}>
             <SelectTrigger>
-              <SelectValue placeholder="Sin vincular" />
+              <SelectValue placeholder="Sin vincular">
+                {(v: string | null) => {
+                  if (!v || v === "none") return "Sin vincular";
+                  const rm = rawMaterials.find((r) => r.id === v);
+                  return rm ? `${rm.name} (${rm.unit})` : "Sin vincular";
+                }}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Sin vincular</SelectItem>
