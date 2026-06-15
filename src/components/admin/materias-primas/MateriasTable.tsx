@@ -68,6 +68,7 @@ type SupplierOffer = {
   supplier_sku: string;
   price_final: number;
   price_net: number | null;
+  conversion_factor: number;
   unit_description: string | null;
   list_date: string;
   supplier: Supplier | null;
@@ -246,7 +247,9 @@ function ExpandedRow({ m, onApplyPrice }: {
     .slice(0, 8);
 
   const sortedOffers = [...(m.supplier_offers ?? [])]
-    .sort((a, b) => a.price_final - b.price_final);
+    .sort((a, b) =>
+      (a.price_final / (a.conversion_factor || 1)) - (b.price_final / (b.conversion_factor || 1))
+    );
 
   return (
     <TableRow className="bg-muted/20 hover:bg-muted/20">
@@ -260,8 +263,10 @@ function ExpandedRow({ m, onApplyPrice }: {
               </p>
               <div className="space-y-1.5">
                 {sortedOffers.map((offer, i) => {
+                  const factor = offer.conversion_factor || 1;
+                  const effectivePrice = offer.price_final / factor;
                   const isCheapest = i === 0 && sortedOffers.length > 1;
-                  const isActive = Math.abs(offer.price_final - m.current_price) < 0.01;
+                  const isActive = Math.abs(effectivePrice - m.current_price) < 0.01;
                   return (
                     <div
                       key={offer.id}
@@ -282,9 +287,16 @@ function ExpandedRow({ m, onApplyPrice }: {
                           {offer.unit_description}
                         </span>
                       )}
-                      <span className="font-mono font-semibold">
-                        {formatPrice(offer.price_final)}
-                      </span>
+                      <div className="flex flex-col items-end">
+                        <span className="font-mono font-semibold">
+                          {formatPrice(effectivePrice)}
+                        </span>
+                        {factor > 1 && (
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {formatPrice(offer.price_final)} ÷{factor}
+                          </span>
+                        )}
+                      </div>
                       <span className="text-muted-foreground text-xs">
                         Lista: {formatDate(offer.list_date)}
                       </span>
@@ -305,7 +317,7 @@ function ExpandedRow({ m, onApplyPrice }: {
                           className="ml-auto h-7 text-xs"
                           onClick={() => onApplyPrice(
                             offer.supplier!.id,
-                            offer.price_final,
+                            effectivePrice,
                             offer.supplier!.name
                           )}
                           disabled={!offer.supplier}
