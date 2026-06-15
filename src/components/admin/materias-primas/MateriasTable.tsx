@@ -554,7 +554,7 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
                       }
                     </TableCell>
                     <TableCell className="text-right font-mono text-xs text-muted-foreground">
-                      {m.price_per_gram != null
+                      {["g", "kg", "ml", "l"].includes(m.unit) && m.price_per_gram != null
                         ? `$${Number(m.price_per_gram).toFixed(4)}`
                         : "—"}
                     </TableCell>
