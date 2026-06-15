@@ -4,6 +4,28 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Menu, MessageCircle } from "lucide-react";
+
+function Logo({ className }: { className?: string }) {
+  const [imgError, setImgError] = useState(false);
+  if (imgError) {
+    return (
+      <span className="font-script text-3xl md:text-4xl gradient-brand-text leading-none">
+        La Patisserie
+      </span>
+    );
+  }
+  return (
+    <Image
+      src="/logo.png"
+      alt="La Patisserie — Tienda de Dulces"
+      width={120}
+      height={120}
+      className={className}
+      priority
+      onError={() => setImgError(true)}
+    />
+  );
+}
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -42,14 +64,7 @@ export function Navbar() {
 
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
-            <Image
-              src="/logo.png"
-              alt="La Patisserie — Tienda de Dulces"
-              width={120}
-              height={120}
-              className="h-12 w-auto md:h-14"
-              priority
-            />
+            <Logo className="h-12 w-auto md:h-14" />
           </Link>
 
           {/* Desktop nav */}
@@ -95,13 +110,7 @@ export function Navbar() {
                   onClick={() => setOpen(false)}
                   className="mb-8 block"
                 >
-                  <Image
-                    src="/logo.png"
-                    alt="La Patisserie"
-                    width={100}
-                    height={100}
-                    className="h-16 w-auto"
-                  />
+                  <Logo className="h-16 w-auto" />
                 </Link>
 
                 <div className="flex flex-col gap-1">
