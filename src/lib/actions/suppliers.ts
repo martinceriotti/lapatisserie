@@ -236,7 +236,7 @@ export async function getRawMaterialsList() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("raw_materials")
-    .select("id, name, unit")
+    .select("id, name, unit, current_price")
     .eq("is_active", true)
     .order("name");
 
