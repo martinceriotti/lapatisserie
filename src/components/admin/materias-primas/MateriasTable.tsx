@@ -72,6 +72,7 @@ type MateriaPrima = {
   category: typeof CATEGORIES[number];
   current_price: number;
   price_per_gram: number;
+  supplier: string | null;
   is_active: boolean;
   price_history: PriceHistory[];
 };
@@ -195,14 +196,25 @@ function MateriaPrimaForm({
           </Select>
         </div>
 
+        {/* Proveedor */}
+        <div className="col-span-2 space-y-1.5">
+          <Label htmlFor="supplier">Proveedor (opcional)</Label>
+          <Input
+            id="supplier"
+            name="supplier"
+            defaultValue={defaultValues?.supplier ?? ""}
+            placeholder="Ej: Distribuidora San Martín"
+          />
+        </div>
+
         {/* Descripción */}
         <div className="col-span-2 space-y-1.5">
-          <Label htmlFor="description">Descripción (opcional)</Label>
+          <Label htmlFor="description">Notas (opcional)</Label>
           <Textarea
             id="description"
             name="description"
             defaultValue={defaultValues?.description ?? ""}
-            placeholder="Marca, proveedor, detalles…"
+            placeholder="Marca, calidad, detalles adicionales…"
             rows={2}
             className="resize-none"
           />
@@ -333,6 +345,7 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
           <TableHeader>
             <TableRow className="bg-accent/50 hover:bg-accent/50">
               <TableHead className="font-medium">Nombre</TableHead>
+              <TableHead className="font-medium">Proveedor</TableHead>
               <TableHead className="font-medium">Categoría</TableHead>
               <TableHead className="font-medium text-right">Precio</TableHead>
               <TableHead className="font-medium text-right">$/g</TableHead>
@@ -344,7 +357,7 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
                   {search || categoryFilter !== "all"
                     ? "No se encontraron resultados."
                     : "Todavía no hay materias primas. Agregá la primera."}
@@ -358,6 +371,9 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
                   className={cn(!m.is_active && "opacity-50")}
                 >
                   <TableCell className="font-medium">{m.name}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {m.supplier ?? <span className="text-muted-foreground/40">—</span>}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="text-xs">
                       {CATEGORY_LABELS[m.category]}
@@ -432,7 +448,7 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
                 {/* Price history row */}
                 {expandedHistory === m.id && m.price_history?.length > 0 && (
                   <TableRow key={`${m.id}-history`} className="bg-muted/30">
-                    <TableCell colSpan={7} className="py-0">
+                    <TableCell colSpan={8} className="py-0">
                       <div className="px-4 py-3">
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                           Historial de precios
