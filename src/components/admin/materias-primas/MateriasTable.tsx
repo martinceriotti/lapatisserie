@@ -176,7 +176,9 @@ function MateriaPrimaForm({
           <Label>Unidad *</Label>
           <Select value={unit} onValueChange={handleUnitChange}>
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue>
+                {(v: string | null) => UNIT_LABELS[v as keyof typeof UNIT_LABELS] ?? v ?? "—"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {UNITS.map((u) => (
@@ -193,7 +195,9 @@ function MateriaPrimaForm({
           <Label>Categoría *</Label>
           <Select value={category} onValueChange={handleCategoryChange}>
             <SelectTrigger>
-              <SelectValue />
+              <SelectValue>
+                {(v: string | null) => CATEGORY_LABELS[v as keyof typeof CATEGORY_LABELS] ?? v ?? "—"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {CATEGORIES.map((c) => (
@@ -461,7 +465,13 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
         </div>
         <Select value={categoryFilter} onValueChange={(v) => { if (v) setCategoryFilter(v); }}>
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Todas las categorías" />
+            <SelectValue placeholder="Todas las categorías">
+              {(v: string | null) =>
+                !v || v === "all"
+                  ? "Todas las categorías"
+                  : (CATEGORY_LABELS[v as keyof typeof CATEGORY_LABELS] ?? v)
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas las categorías</SelectItem>
