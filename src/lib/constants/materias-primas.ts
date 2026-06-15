@@ -1,12 +1,15 @@
 export const UNITS = ["g", "kg", "ml", "l", "unidad", "sobre", "taza"] as const;
-export const CATEGORIES = ["dairy", "flour", "chocolate", "sugar", "fruit", "packaging", "other"] as const;
+export const CATEGORIES = ["dairy", "eggs", "flour", "chocolate", "sugar", "fruit", "nuts", "powders", "packaging", "other"] as const;
 
 export const CATEGORY_LABELS: Record<typeof CATEGORIES[number], string> = {
   dairy: "Lácteos",
+  eggs: "Huevos",
   flour: "Harinas",
   chocolate: "Chocolate",
   sugar: "Azúcares",
   fruit: "Frutas",
+  nuts: "Frutos Secos",
+  powders: "Polvos",
   packaging: "Packaging",
   other: "Otros",
 };
