@@ -1,92 +1,84 @@
 import type { ParsedItem, ParseResult } from "./types";
 import { parseUS, round2 } from "./utils";
 
-// LODISER format:
-// PRODUCTO | ENVASE | CODIGO DE PRODUCTO | PRECIO (SIN IMPUESTOS)
+// LODISER format (multi-column PDF extracted left-to-right):
+// PRODUCTO | ENVASE | CODIGO | PRECIO (SIN IMPUESTOS)
 //
-// In the extracted text, multi-line products look like:
-//   JALEA FANTASIA BRILLO
-//   (CALIENTE) LODISER / KEWEY  BALDE 13 KG  JAL16 / JAL04  $ 28,350.00
-//
-// The code and price are always on the same line.
-// Codes can be:
-//   - alphanumeric: JAL16, ACE04, CAT70
-//   - dual: JAL16 / JAL04 (use the first one)
-//   - pure alpha: INN, MAR (no digits)
-//
-// The line ending with "CODE $ PRICE" contains the code + price (and some envase/product words).
-// If that content before the code starts with "(" it's a continuation — prepend the previous line.
+// Product names can span 1-4 lines; code and price are ALWAYS on the last line.
+// Strategy: two-pass — find all "anchor" lines (ending with CODE $ PRICE),
+// then for each anchor collect all lines above it (back to the previous anchor
+// or a section header) as the product text.
 
-// Matches: "CODE $ 12,345.00" or "CODE / CODE2 $ 12,345.00" at end of line
-// Code: 2-8 uppercase letters optionally followed by 0-4 digits
 const LINE_RE =
   /\b([A-Z]{2,8}\d{0,4})(?:\s*\/\s*[A-Z]{2,8}\d{0,4})?\s+\$\s*([\d,]+\.\d{2})\s*$/;
 
-// Words that should NOT be treated as codes (common Spanish words / units that appear before prices)
 const NOT_CODES = new Set(["KG", "KGS", "UN", "UNI", "LT", "LTS", "CC", "GR", "ML", "MG"]);
 
+// Section/table headers that mark the boundary between product blocks
+const SECTION_RE =
+  /^(PRODUCTO|ENVASE|CODIGO|PRECIO|GASTRONOMIA|MONOPORCIONES|LACTEOS|UNILEVER|POLVOS|ESPECIAS|REPOSTERIA|CEREALES|PANADERIA|HARINAS|ACEITES|CONDIMENTOS|CHOCOLATES|DULCES|SALSAS|MERMELADAS|AZUCARES|HUEVOS|LEVADURAS|GELATINAS|AROMAS|COLORANTES|VINOS|BEBIDAS|CONSERVAS|CARNES|AVES|PESCADOS|PASTAS)/i;
+
+type Anchor = { idx: number; sku: string; priceStr: string; beforeCode: string };
+
 export function parseLodiser(text: string, ivaRate: number): ParseResult {
-  const items: ParsedItem[] = [];
-  const warnings: string[] = [];
   const seen = new Map<string, ParsedItem>();
+  const warnings: string[] = [];
 
   const lines = text
     .split("\n")
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
+  // Pass 1: identify anchor lines
+  const anchors: Anchor[] = [];
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-
-    const m = line.match(LINE_RE);
+    const m = lines[i].match(LINE_RE);
     if (!m) continue;
-
     const sku = m[1];
     if (NOT_CODES.has(sku)) continue;
+    if (parseUS(m[2]) <= 0) continue;
+    const matchIdx = m.index ?? 0;
+    const beforeCode = matchIdx > 0 ? lines[i].slice(0, matchIdx).trim() : "";
+    anchors.push({ idx: i, sku, priceStr: m[2], beforeCode });
+  }
 
-    const priceNet = parseUS(m[2]);
-    if (priceNet <= 0) continue;
+  // Pass 2: for each anchor, collect preceding lines as product text
+  for (let a = 0; a < anchors.length; a++) {
+    const { idx, sku, priceStr, beforeCode } = anchors[a];
+    const prevAnchorIdx = a > 0 ? anchors[a - 1].idx : -1;
 
-    const priceFinal = round2(priceNet * (1 + ivaRate));
-
-    // Everything before "CODE / ... $ PRICE" on this line
-    const matchStart = line.lastIndexOf(m[0].trimStart());
-    const beforeCode = matchStart > 0 ? line.slice(0, matchStart).trim() : "";
-
-    // If beforeCode is very short or starts with "(", this line is a continuation:
-    // the real product name starts on the previous non-empty line
-    let fullProductText = beforeCode;
-    if (i > 0 && (beforeCode.length < 4 || beforeCode.startsWith("("))) {
-      const prevLine = lines[i - 1];
-      // Only prepend if previous line doesn't look like a section header or table header
-      if (!/^(PRODUCTO|ENVASE|CODIGO|PRECIO|GASTRONOMIA|MONOPORCIONES|LACTEOS|UNILEVER|POLVOS|ESPECIAS|REPOSTERIA|CEREALES|PANADERIA|HARINAS|ACEITES|CONDIMENTOS|CHOCOLATES|DULCES|SALSAS)/i.test(prevLine)) {
-        fullProductText = prevLine + (beforeCode ? " " + beforeCode : "");
-      }
+    const textParts: string[] = [];
+    for (let j = idx - 1; j > prevAnchorIdx; j--) {
+      if (SECTION_RE.test(lines[j])) break;
+      textParts.unshift(lines[j]);
     }
+    if (beforeCode) textParts.push(beforeCode);
 
+    const fullProductText = textParts.join(" ").trim();
     if (!fullProductText || fullProductText.length < 2) continue;
 
-    // Try to split "PRODUCT NAME   ENVASE" on 2+ spaces
+    const priceNet = parseUS(priceStr);
+    const priceFinal = round2(priceNet * (1 + ivaRate));
+
+    // Try to split product name from envase on 2+ consecutive spaces
     const parts = fullProductText.split(/\s{2,}/);
-    const productName = (parts[0] ?? fullProductText).trim();
+    const productName = parts[0].trim();
     const unitDescription = parts.slice(1).join(" ").trim() || undefined;
 
-    const item: ParsedItem = {
+    seen.set(sku, {
       supplier_sku: sku,
       product_name: productName,
       unit_description: unitDescription,
       price_net: round2(priceNet),
       price_final: priceFinal,
-    };
-
-    // Last occurrence wins for duplicates
-    seen.set(sku, item);
+    });
   }
 
   const result = [...seen.values()];
-
   if (result.length === 0) {
-    warnings.push("No se encontraron productos con el formato Lodiser. Revisá el PDF en el texto crudo.");
+    warnings.push(
+      "No se encontraron productos con el formato Lodiser. Revisá el PDF en el texto crudo."
+    );
   }
 
   return { items: result, rawText: text, warnings };
