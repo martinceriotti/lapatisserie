@@ -105,7 +105,7 @@ export async function getSupplier(id: string) {
 // ── Supplier Catalog ──────────────────────────────────────────────────────────
 
 const catalogSchema = z.object({
-  supplier_sku: z.string().min(1, "Código requerido").max(50),
+  supplier_sku: z.string().min(1, "Código requerido").max(100),
   product_name: z.string().min(1, "Nombre requerido").max(300),
   unit_description: z.string().max(100).optional(),
   price_net: z.coerce.number().nonnegative().optional(),
