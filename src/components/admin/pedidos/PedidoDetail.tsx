@@ -89,15 +89,15 @@ function AddItemForm({
   const selectedProduct = products.find((p) => p.id === productId);
   const selectedVariant = selectedProduct?.variants.find((v) => v.id === variantId);
 
-  function handleProductChange(id: string) {
-    setProductId(id);
+  function handleProductChange(id: string | null) {
+    setProductId(id ?? "");
     setVariantId("");
     const p = products.find((p) => p.id === id);
     setUnitPrice(p?.base_price ?? 0);
   }
 
-  function handleVariantChange(id: string) {
-    setVariantId(id);
+  function handleVariantChange(id: string | null) {
+    setVariantId(id ?? "");
     if (!selectedProduct) return;
     const v = selectedProduct.variants.find((v) => v.id === id);
     if (!v) return;
