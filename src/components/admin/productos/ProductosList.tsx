@@ -178,7 +178,12 @@ function ProductForm({
         <Label>Receta vinculada</Label>
         <Select value={recipeId} onValueChange={(v) => setRecipeId(v ?? "")}>
           <SelectTrigger>
-            <SelectValue placeholder="Sin vincular" />
+            <SelectValue>
+              {(v: string | null) => {
+                if (!v) return "Sin vincular";
+                return recipes.find((r) => r.id === v)?.name ?? "Sin vincular";
+              }}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">Sin vincular</SelectItem>
@@ -213,7 +218,12 @@ function ProductForm({
           <Label>Categoría</Label>
           <Select value={categoryId} onValueChange={(v) => setCategoryId(v ?? "")}>
             <SelectTrigger>
-              <SelectValue placeholder="Sin categoría" />
+              <SelectValue>
+                {(v: string | null) => {
+                  if (!v) return "Sin categoría";
+                  return categories.find((c) => c.id === v)?.name ?? "Sin categoría";
+                }}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">Sin categoría</SelectItem>
