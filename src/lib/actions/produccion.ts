@@ -17,6 +17,7 @@ export type ProductionIngredient = {
   raw_material_name: string;
   unit: string;
   total_quantity: number;
+  stock_quantity: number;
 };
 
 export type ProductionPlan = {
@@ -137,8 +138,22 @@ export async function getProductionPlan(from: string, to: string): Promise<Produ
           raw_material_name: rm.name,
           unit: ing.unit ?? rm.unit,
           total_quantity: needed,
+          stock_quantity: 0,
         });
       }
+    }
+  }
+
+  // 6. Fetch stock levels for the relevant raw materials
+  const ingredientIds = Array.from(ingredientMap.keys());
+  if (ingredientIds.length > 0) {
+    const { data: stockData } = await supabase
+      .from("raw_materials")
+      .select("id, stock_quantity")
+      .in("id", ingredientIds);
+    for (const row of stockData ?? []) {
+      const ing = ingredientMap.get(row.id);
+      if (ing) ing.stock_quantity = Number(row.stock_quantity ?? 0);
     }
   }
 

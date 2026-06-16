@@ -204,18 +204,39 @@ export function ProduccionView({
                 <thead>
                   <tr className="border-b border-border">
                     <th className="text-left px-4 py-2 font-medium text-muted-foreground text-xs">Materia prima</th>
-                    <th className="text-right px-4 py-2 font-medium text-muted-foreground text-xs">Cantidad</th>
+                    <th className="text-right px-4 py-2 font-medium text-muted-foreground text-xs">Necesario</th>
+                    <th className="text-right px-4 py-2 font-medium text-muted-foreground text-xs">En stock</th>
+                    <th className="text-right px-4 py-2 font-medium text-muted-foreground text-xs">A comprar</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {plan.ingredients.map((ing) => (
-                    <tr key={ing.raw_material_id} className="hover:bg-muted/20">
-                      <td className="px-4 py-3 font-medium">{ing.raw_material_name}</td>
-                      <td className="px-4 py-3 text-right font-mono font-semibold text-primary">
-                        {formatQty(ing.total_quantity, ing.unit)}
-                      </td>
-                    </tr>
-                  ))}
+                  {plan.ingredients.map((ing) => {
+                    const missing = Math.max(0, ing.total_quantity - ing.stock_quantity);
+                    const ok = missing === 0;
+                    return (
+                      <tr key={ing.raw_material_id} className="hover:bg-muted/20">
+                        <td className="px-4 py-3 font-medium">{ing.raw_material_name}</td>
+                        <td className="px-4 py-3 text-right font-mono font-semibold text-primary">
+                          {formatQty(ing.total_quantity, ing.unit)}
+                        </td>
+                        <td className={cn(
+                          "px-4 py-3 text-right font-mono",
+                          ok ? "text-green-600" : "text-muted-foreground"
+                        )}>
+                          {formatQty(ing.stock_quantity, ing.unit)}
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono">
+                          {ok ? (
+                            <span className="text-green-600 text-xs">✓ Suficiente</span>
+                          ) : (
+                            <span className="text-red-500 font-semibold">
+                              {formatQty(missing, ing.unit)}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
