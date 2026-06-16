@@ -191,18 +191,20 @@ export function OverheadTable({ initialData }: { initialData: OverheadItem[] }) 
             {/* Toggle */}
             <button
               type="button"
+              role="switch"
+              aria-checked={item.is_active}
               onClick={() => handleToggle(item.id, item.is_active)}
               disabled={isPending}
               className={cn(
-                "w-9 h-5 rounded-full transition-colors shrink-0 relative",
+                "inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors",
                 item.is_active ? "bg-primary" : "bg-muted-foreground/30"
               )}
               title={item.is_active ? "Desactivar" : "Activar"}
             >
               <span
                 className={cn(
-                  "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform",
-                  item.is_active ? "translate-x-4" : "translate-x-0.5"
+                  "pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform",
+                  item.is_active ? "translate-x-4" : "translate-x-0"
                 )}
               />
             </button>

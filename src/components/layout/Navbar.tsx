@@ -2,30 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Menu, MessageCircle } from "lucide-react";
-
-function Logo({ className }: { className?: string }) {
-  const [imgError, setImgError] = useState(false);
-  if (imgError) {
-    return (
-      <span className="font-script text-3xl md:text-4xl gradient-brand-text leading-none">
-        La Patisserie
-      </span>
-    );
-  }
-  return (
-    <Image
-      src="/logo.png"
-      alt="La Patisserie — Tienda de Dulces"
-      width={360}
-      height={100}
-      className={className}
-      priority
-      onError={() => setImgError(true)}
-    />
-  );
-}
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -62,9 +39,11 @@ export function Navbar() {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-20">
 
-          {/* Logo */}
+          {/* Brand */}
           <Link href="/" className="flex-shrink-0">
-            <Logo className="h-10 w-auto md:h-12" />
+            <span className="font-script text-3xl md:text-4xl gradient-brand-text leading-none">
+              La Patisserie
+            </span>
           </Link>
 
           {/* Desktop nav */}
@@ -110,7 +89,9 @@ export function Navbar() {
                   onClick={() => setOpen(false)}
                   className="mb-8 block"
                 >
-                  <Logo className="h-12 w-auto" />
+                  <span className="font-script text-4xl gradient-brand-text leading-none">
+                    La Patisserie
+                  </span>
                 </Link>
 
                 <div className="flex flex-col gap-1">
