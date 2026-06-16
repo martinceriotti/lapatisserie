@@ -251,12 +251,16 @@ function MateriaPrimaForm({
           <div className="col-span-2 space-y-1.5">
             <Label>Receta vinculada</Label>
             <Select value={recipeId} onValueChange={(v) => setRecipeId(v ?? "")}>
-              <SelectTrigger>
+              <SelectTrigger className="overflow-hidden">
                 <SelectValue>
                   {(v: string | null) => {
                     if (!v) return "Sin receta";
                     const r = recipes.find((r) => r.id === v);
-                    return r ? `${r.name} (rinde ${r.yield_quantity} ${r.yield_unit})` : "Sin receta";
+                    return (
+                      <span className="truncate block">
+                        {r ? r.name : "Sin receta"}
+                      </span>
+                    );
                   }}
                 </SelectValue>
               </SelectTrigger>
