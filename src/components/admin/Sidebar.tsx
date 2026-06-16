@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronRight,
   Settings,
+  ChefHat,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/admin/recetas", label: "Recetas", icon: BookOpen },
   { href: "/admin/productos", label: "Productos", icon: ShoppingBag },
   { href: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },
+  { href: "/admin/produccion", label: "Producción", icon: ChefHat },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings },
 ];
 
