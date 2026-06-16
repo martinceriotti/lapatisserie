@@ -11,6 +11,7 @@ export type ActionResult =
 export type AppSettings = {
   id: number;
   sale_price_factor: number;
+  deposit_pct: number;
   updated_at: string;
 };
 
