@@ -5,13 +5,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
+import { type OrderSummary } from "@/lib/actions/pedidos";
 import {
-  type OrderSummary,
   type OrderStatus,
   STATUS_LABELS,
   PAYMENT_LABELS,
-  STATUS_FLOW,
-} from "@/lib/actions/pedidos";
+} from "@/lib/constants/pedidos";
 import { cn } from "@/lib/utils";
 
 const ARS = new Intl.NumberFormat("es-AR", {

@@ -16,10 +16,8 @@ import {
   type Customer,
   type OrderStatus,
   type PaymentStatus,
-  STATUS_LABELS,
-  STATUS_FLOW,
-  PAYMENT_LABELS,
 } from "@/lib/actions/pedidos";
+import { STATUS_LABELS, STATUS_FLOW, PAYMENT_LABELS } from "@/lib/constants/pedidos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
