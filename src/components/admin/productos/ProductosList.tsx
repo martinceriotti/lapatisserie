@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useTransition, useCallback, useMemo } from "react";
 import {
   createProduct,
   updateProduct,
@@ -30,7 +30,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Pencil, Trash2, Loader2, Star } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Star, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ARS = new Intl.NumberFormat("es-AR", {
@@ -332,6 +332,17 @@ export function ProductosList({
   const [editing, setEditing] = useState<ProductWithCost | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState<string>("all");
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return products.filter((p) => {
+      if (activeCategory !== "all" && p.category_id !== activeCategory) return false;
+      if (q && !p.name.toLowerCase().includes(q) && !(p.recipe?.name ?? "").toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [products, search, activeCategory]);
 
   const handleCreate = useCallback((fd: FormData) => {
     startTransition(async () => {
@@ -387,22 +398,77 @@ export function ProductosList({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <Button
-          onClick={() => { setFormErrors(null); setOpenCreate(true); }}
-          className="gradient-brand text-white border-0 gap-1.5"
-        >
-          <Plus className="w-4 h-4" />
-          Nuevo producto
-        </Button>
+      {/* Top bar: search + new */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Buscar producto o receta…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-8 h-9"
+          />
+        </div>
+        <div className="ml-auto">
+          <Button
+            onClick={() => { setFormErrors(null); setOpenCreate(true); }}
+            className="gradient-brand text-white border-0 gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            Nuevo producto
+          </Button>
+        </div>
       </div>
 
-      {products.length === 0 ? (
+      {/* Category filter pills */}
+      {categories.length > 0 && (
+        <div className="flex gap-1.5 flex-wrap">
+          <button
+            onClick={() => setActiveCategory("all")}
+            className={cn(
+              "px-3 py-1 rounded-full text-xs font-medium transition-colors border",
+              activeCategory === "all"
+                ? "bg-primary text-white border-primary"
+                : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+            )}
+          >
+            Todos
+            <span className="ml-1.5 opacity-70">{products.length}</span>
+          </button>
+          {categories.map((cat) => {
+            const count = products.filter((p) => p.category_id === cat.id).length;
+            if (count === 0) return null;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-medium transition-colors border",
+                  activeCategory === cat.id
+                    ? "bg-primary text-white border-primary"
+                    : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                )}
+              >
+                {cat.name}
+                <span className="ml-1.5 opacity-70">{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {filtered.length === 0 ? (
         <div className="border border-border rounded-2xl p-12 text-center">
-          <p className="text-muted-foreground text-sm">Sin productos todavía.</p>
-          <p className="text-muted-foreground text-xs mt-1">
-            Creá el primero con el botón de arriba.
+          <p className="text-muted-foreground text-sm">
+            {search || activeCategory !== "all"
+              ? "Sin resultados para esta búsqueda."
+              : "Sin productos todavía."}
           </p>
+          {!search && activeCategory === "all" && (
+            <p className="text-muted-foreground text-xs mt-1">
+              Creá el primero con el botón de arriba.
+            </p>
+          )}
         </div>
       ) : (
         <div className="border border-border rounded-2xl overflow-hidden">
@@ -419,7 +485,7 @@ export function ProductosList({
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {products.map((p) => {
+              {filtered.map((p) => {
                 const cost = getCalculatedCost(p);
                 const suggestedPrice = cost ? cost * salePriceFactor : null;
                 const displayPrice = p.base_price ?? suggestedPrice;
