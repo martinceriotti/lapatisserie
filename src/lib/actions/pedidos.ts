@@ -84,18 +84,9 @@ async function recalcTotals(supabase: ReturnType<typeof createAdminClient>, orde
     0
   );
 
-  const { data: order } = await supabase
-    .from("orders")
-    .select("discount")
-    .eq("id", orderId)
-    .single();
-
-  const discount = Number(order?.discount ?? 0);
-  const total = subtotal - discount;
-
   await supabase
     .from("orders")
-    .update({ subtotal, total, updated_at: new Date().toISOString() })
+    .update({ subtotal, updated_at: new Date().toISOString() })
     .eq("id", orderId);
 }
 
@@ -236,7 +227,6 @@ export async function createOrder(
       status: "borrador",
       subtotal: 0,
       discount: 0,
-      total: 0,
       payment_status: "pending",
     }])
     .select("id")
@@ -318,12 +308,9 @@ export async function updateDiscount(id: string, discount: number): Promise<Acti
     .eq("id", id)
     .single();
 
-  const subtotal = Number(order?.subtotal ?? 0);
-  const total = subtotal - discount;
-
   const { error } = await supabase
     .from("orders")
-    .update({ discount, total, updated_at: new Date().toISOString() })
+    .update({ discount, updated_at: new Date().toISOString() })
     .eq("id", id);
   if (error) return { error: error.message };
 
