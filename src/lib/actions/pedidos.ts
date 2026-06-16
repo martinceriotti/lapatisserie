@@ -33,6 +33,7 @@ export type ProductForOrder = {
   id: string;
   name: string;
   base_price: number | null;
+  suggested_price: number | null;
   variants: ProductVariant[];
 };
 
@@ -102,21 +103,42 @@ export async function getCustomers(): Promise<Customer[]> {
   return data ?? [];
 }
 
-export async function getProductsForOrder(): Promise<ProductForOrder[]> {
+export async function getProductsForOrder(salePriceFactor = 3): Promise<ProductForOrder[]> {
   const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("products")
-    .select(`
-      id, name, base_price,
-      variants:product_variants(id, name, price_override, additional_cost, is_active)
-    `)
-    .eq("is_active", true)
-    .order("name");
-  if (error) throw error;
-  return (data ?? []).map((p) => ({
-    ...p,
-    variants: ((p.variants as ProductVariant[]) ?? []).filter((v) => v.is_active),
-  }));
+  const [productsRes, costsRes] = await Promise.all([
+    supabase
+      .from("products")
+      .select(`
+        id, name, base_price, type, portion_qty, recipe_id,
+        variants:product_variants(id, name, price_override, additional_cost, is_active)
+      `)
+      .eq("is_active", true)
+      .order("name"),
+    supabase.from("recipe_costs").select("recipe_id, cost_per_unit, total_cost"),
+  ]);
+  if (productsRes.error) throw productsRes.error;
+
+  const costsMap = new Map(
+    (costsRes.data ?? []).map((c) => [c.recipe_id as string, c])
+  );
+
+  return (productsRes.data ?? []).map((p) => {
+    const cost = p.recipe_id ? costsMap.get(p.recipe_id) : null;
+    let suggested_price: number | null = p.base_price;
+    if (suggested_price == null && cost) {
+      const base = p.type === "receta_completa"
+        ? cost.total_cost
+        : cost.cost_per_unit * (p.portion_qty ?? 1);
+      suggested_price = Math.round(base * salePriceFactor);
+    }
+    return {
+      id: p.id,
+      name: p.name,
+      base_price: p.base_price,
+      suggested_price,
+      variants: ((p.variants as ProductVariant[]) ?? []).filter((v) => v.is_active),
+    };
+  });
 }
 
 export async function getOrders(): Promise<OrderSummary[]> {

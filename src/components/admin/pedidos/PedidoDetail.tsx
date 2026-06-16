@@ -91,7 +91,7 @@ function AddItemForm({
     setProductId(id ?? "");
     setVariantId("");
     const p = products.find((p) => p.id === id);
-    setUnitPrice(p?.base_price ?? 0);
+    setUnitPrice(p?.suggested_price ?? p?.base_price ?? 0);
   }
 
   function handleVariantChange(id: string | null) {
@@ -99,7 +99,8 @@ function AddItemForm({
     if (!selectedProduct) return;
     const v = selectedProduct.variants.find((v) => v.id === id);
     if (!v) return;
-    const price = v.price_override ?? (selectedProduct.base_price ?? 0) + (v.additional_cost ?? 0);
+    const base = selectedProduct.suggested_price ?? selectedProduct.base_price ?? 0;
+    const price = v.price_override ?? base + (v.additional_cost ?? 0);
     setUnitPrice(price);
   }
 
@@ -143,24 +144,25 @@ function AddItemForm({
   return (
     <div className="border-t border-dashed border-border pt-4 space-y-3">
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Agregar ítem</p>
-      <div className="grid grid-cols-2 gap-3">
-        {/* Producto */}
-        <div className="space-y-1">
-          <Label className="text-xs">Producto</Label>
-          <Select value={productId} onValueChange={handleProductChange}>
-            <SelectTrigger>
-              <SelectValue>
-                {(v: string | null) => v ? (products.find((p) => p.id === v)?.name ?? "—") : "Seleccionar..."}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {products.map((p) => (
-                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
 
+      {/* Producto — ancho completo */}
+      <div className="space-y-1">
+        <Label className="text-xs">Producto</Label>
+        <Select value={productId} onValueChange={handleProductChange}>
+          <SelectTrigger className="w-full">
+            <SelectValue>
+              {(v: string | null) => v ? (products.find((p) => p.id === v)?.name ?? "—") : "Seleccionar producto..."}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="w-[var(--radix-select-trigger-width)]">
+            {products.map((p) => (
+              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
         {/* Variante */}
         <div className="space-y-1">
           <Label className="text-xs">Variante</Label>
