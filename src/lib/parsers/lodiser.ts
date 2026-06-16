@@ -2,23 +2,30 @@ import type { ParsedItem, ParseResult } from "./types";
 import { parseUS, round2 } from "./utils";
 
 // LODISER format (multi-column PDF extracted left-to-right):
-// PRODUCTO | ENVASE | CODIGO | PRECIO (SIN IMPUESTOS)
+// Product names can span 1-4 lines; price always closes the last line.
+// We ignore the supplier code entirely and generate an internal slug SKU.
 //
-// Product names can span 1-4 lines; code and price are ALWAYS on the last line.
-// Strategy: two-pass — find all "anchor" lines (ending with CODE $ PRICE),
-// then for each anchor collect all lines above it (back to the previous anchor
-// or a section header) as the product text.
+// Strategy: two-pass.
+//   Pass 1: find all "anchor" lines — those ending with $ PRICE.
+//   Pass 2: for each anchor, walk backwards collecting lines up to the
+//           previous anchor or a section header to build the full product text.
 
-const LINE_RE =
-  /\b([A-Z]{2,8}\d{0,4})(?:\s*\/\s*[A-Z]{2,8}\d{0,4})?\s+\$\s*([\d,]+\.\d{2})\s*$/;
+const PRICE_RE = /\$\s*([\d,]+\.\d{2})\s*$/;
 
-const NOT_CODES = new Set(["KG", "KGS", "UN", "UNI", "LT", "LTS", "CC", "GR", "ML", "MG"]);
-
-// Section/table headers that mark the boundary between product blocks
 const SECTION_RE =
-  /^(PRODUCTO|ENVASE|CODIGO|PRECIO|GASTRONOMIA|MONOPORCIONES|LACTEOS|UNILEVER|POLVOS|ESPECIAS|REPOSTERIA|CEREALES|PANADERIA|HARINAS|ACEITES|CONDIMENTOS|CHOCOLATES|DULCES|SALSAS|MERMELADAS|AZUCARES|HUEVOS|LEVADURAS|GELATINAS|AROMAS|COLORANTES|VINOS|BEBIDAS|CONSERVAS|CARNES|AVES|PESCADOS|PASTAS)/i;
+  /^(PRODUCTO|ENVASE|CODIGO|PRECIO|IMPUESTOS|GASTRONOMIA|MONOPORCIONES|LACTEOS|UNILEVER|POLVOS|ESPECIAS|REPOSTERIA|CEREALES|PANADERIA|HARINAS|ACEITES|CONDIMENTOS|CHOCOLATES|DULCES|SALSAS|MERMELADAS|AZUCARES|HUEVOS|LEVADURAS|GELATINAS|AROMAS|COLORANTES|VINOS|BEBIDAS|CONSERVAS|CARNES|AVES|PESCADOS|PASTAS|FRUTAS|FRUTOS|SEMILLAS|PAILADOS|GRASAS|MARGARINAS|OTROS|RELLENOS|COBERTURAS|VARIEGATTOS|ELABORACION|ARTESANAL)/i;
 
-type Anchor = { idx: number; sku: string; priceStr: string; beforeCode: string };
+function toSlug(text: string): string {
+  return text
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+type Anchor = { idx: number; priceStr: string; beforeDollar: string };
 
 export function parseLodiser(text: string, ivaRate: number): ParseResult {
   const seen = new Map<string, ParsedItem>();
@@ -29,48 +36,45 @@ export function parseLodiser(text: string, ivaRate: number): ParseResult {
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
-  // Pass 1: identify anchor lines
+  // Pass 1: identify anchor lines (ending with $ PRICE)
   const anchors: Anchor[] = [];
   for (let i = 0; i < lines.length; i++) {
-    const m = lines[i].match(LINE_RE);
+    const m = lines[i].match(PRICE_RE);
     if (!m) continue;
-    const sku = m[1];
-    if (NOT_CODES.has(sku)) continue;
-    if (parseUS(m[2]) <= 0) continue;
-    const matchIdx = m.index ?? 0;
-    const beforeCode = matchIdx > 0 ? lines[i].slice(0, matchIdx).trim() : "";
-    anchors.push({ idx: i, sku, priceStr: m[2], beforeCode });
+    const dollarIdx = lines[i].lastIndexOf("$");
+    const beforeDollar = dollarIdx > 0 ? lines[i].slice(0, dollarIdx).trim() : "";
+    anchors.push({ idx: i, priceStr: m[1], beforeDollar });
   }
 
   // Pass 2: for each anchor, collect preceding lines as product text
   for (let a = 0; a < anchors.length; a++) {
-    const { idx, sku, priceStr, beforeCode } = anchors[a];
+    const { idx, priceStr, beforeDollar } = anchors[a];
     const prevAnchorIdx = a > 0 ? anchors[a - 1].idx : -1;
 
     const textParts: string[] = [];
     for (let j = idx - 1; j > prevAnchorIdx; j--) {
       if (SECTION_RE.test(lines[j])) break;
+      // Skip lines that are clearly page headers/footers (contain lowercase)
+      if (/[a-záéíóúñ]/.test(lines[j])) continue;
       textParts.unshift(lines[j]);
     }
-    if (beforeCode) textParts.push(beforeCode);
+    if (beforeDollar) textParts.push(beforeDollar);
 
     const fullProductText = textParts.join(" ").trim();
-    if (!fullProductText || fullProductText.length < 2) continue;
+    if (!fullProductText || fullProductText.length < 3) continue;
 
     const priceNet = parseUS(priceStr);
-    const priceFinal = round2(priceNet * (1 + ivaRate));
+    if (priceNet <= 0) continue;
 
-    // Try to split product name from envase on 2+ consecutive spaces
-    const parts = fullProductText.split(/\s{2,}/);
-    const productName = parts[0].trim();
-    const unitDescription = parts.slice(1).join(" ").trim() || undefined;
+    const sku = toSlug(fullProductText);
+    if (!sku) continue;
 
     seen.set(sku, {
       supplier_sku: sku,
-      product_name: productName,
-      unit_description: unitDescription,
+      product_name: fullProductText,
+      unit_description: undefined,
       price_net: round2(priceNet),
-      price_final: priceFinal,
+      price_final: round2(priceNet * (1 + ivaRate)),
     });
   }
 
