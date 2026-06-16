@@ -13,6 +13,7 @@ import {
   Truck,
   LogOut,
   ChevronRight,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/admin/recetas", label: "Recetas", icon: BookOpen },
   { href: "/admin/productos", label: "Productos", icon: ShoppingBag },
   { href: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },
+  { href: "/admin/configuracion", label: "Configuración", icon: Settings },
 ];
 
 export function Sidebar() {
