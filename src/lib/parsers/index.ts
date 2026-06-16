@@ -2,6 +2,7 @@ import type { ParseResult, ParserType } from "./types";
 import { parseCepro } from "./cepro";
 import { parseDrovandi } from "./drovandi";
 import { parseLodiser } from "./lodiser";
+import { parsePira } from "./pira";
 
 export function parseSupplierList(
   text: string,
@@ -15,6 +16,8 @@ export function parseSupplierList(
       return parseDrovandi(text, ivaRate);
     case "lodiser":
       return parseLodiser(text, ivaRate);
+    case "pira":
+      return parsePira(text, ivaRate);
   }
 }
 

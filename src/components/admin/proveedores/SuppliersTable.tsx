@@ -150,6 +150,7 @@ function SupplierForm({
               <SelectItem value="cepro">CEPRO</SelectItem>
               <SelectItem value="drovandi">Drovandi</SelectItem>
               <SelectItem value="lodiser">Lodiser</SelectItem>
+              <SelectItem value="pira">PIRA</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">Para importar PDFs automáticamente</p>

@@ -12,4 +12,4 @@ export interface ParseResult {
   warnings: string[];
 }
 
-export type ParserType = "cepro" | "drovandi" | "lodiser";
+export type ParserType = "cepro" | "drovandi" | "lodiser" | "pira";

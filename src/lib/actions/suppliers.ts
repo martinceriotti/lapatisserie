@@ -18,7 +18,7 @@ const supplierSchema = z.object({
   notes: z.string().max(500).optional(),
   is_active: z.coerce.boolean().default(true),
   default_iva_rate: z.coerce.number().min(0).max(1).default(0.21),
-  parser_type: z.enum(["cepro", "drovandi", "lodiser"]).optional().or(z.literal("")),
+  parser_type: z.enum(["cepro", "drovandi", "lodiser", "pira"]).optional().or(z.literal("")),
 });
 
 export async function createSupplier(
