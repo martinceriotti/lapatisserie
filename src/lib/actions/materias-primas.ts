@@ -76,7 +76,7 @@ export async function getMateriasWithHistory() {
         supplier:suppliers(id, name)
       ),
       supplier_offers:supplier_catalog(
-        id, supplier_sku, price_final, price_net, conversion_factor, unit_description, list_date,
+        id, supplier_sku, product_name, price_final, price_net, conversion_factor, unit_description, list_date,
         supplier:suppliers(id, name)
       )
     `)

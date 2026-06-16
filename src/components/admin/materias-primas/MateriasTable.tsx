@@ -66,6 +66,7 @@ type PriceHistory = {
 type SupplierOffer = {
   id: string;
   supplier_sku: string;
+  product_name: string;
   price_final: number;
   price_net: number | null;
   conversion_factor: number;
@@ -279,8 +280,11 @@ function ExpandedRow({ m, onApplyPrice }: {
                       <span className="font-medium w-36 truncate">
                         {offer.supplier?.name ?? "Proveedor"}
                       </span>
-                      <span className="text-muted-foreground text-xs w-20">
-                        SKU: {offer.supplier_sku}
+                      <span
+                        className="text-muted-foreground text-xs flex-1 truncate"
+                        title={offer.product_name}
+                      >
+                        {offer.product_name}
                       </span>
                       {offer.unit_description && (
                         <span className="text-muted-foreground text-xs w-20">
