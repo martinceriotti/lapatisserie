@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useEffect } from "react";
 import {
   type StockItem,
   type StockMovement,
@@ -218,17 +218,15 @@ function HistoryDialog({
 }) {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loaded, setLoaded] = useState<string | null>(null);
 
-  // Fetch when item changes
-  if (item && item.id !== loaded) {
-    setLoaded(item.id);
+  useEffect(() => {
+    if (!item) { setMovements([]); return; }
     setLoading(true);
     getStockMovements(item.id).then((data) => {
       setMovements(data);
       setLoading(false);
     });
-  }
+  }, [item?.id]);
 
   return (
     <Dialog open={!!item} onOpenChange={(open) => !open && onClose()}>
