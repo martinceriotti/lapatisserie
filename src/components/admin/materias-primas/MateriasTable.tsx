@@ -12,6 +12,8 @@ import {
   CATEGORIES,
   CATEGORY_LABELS,
   UNIT_LABELS,
+  MATERIAL_TYPES,
+  MATERIAL_TYPE_LABELS,
 } from "@/lib/constants/materias-primas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,6 +83,7 @@ type MateriaPrima = {
   description: string | null;
   unit: typeof UNITS[number];
   category: typeof CATEGORIES[number];
+  material_type: typeof MATERIAL_TYPES[number];
   current_price: number;
   price_per_gram: number;
   is_active: boolean;
@@ -119,15 +122,18 @@ function MateriaPrimaForm({
 }) {
   const [unit, setUnit] = useState<string>(defaultValues?.unit ?? "g");
   const [category, setCategory] = useState<string>(defaultValues?.category ?? "other");
+  const [materialType, setMaterialType] = useState<string>(defaultValues?.material_type ?? "materia_prima");
 
   const handleUnitChange = (v: string | null) => { if (v) setUnit(v); };
   const handleCategoryChange = (v: string | null) => { if (v) setCategory(v); };
+  const handleMaterialTypeChange = (v: string | null) => { if (v) setMaterialType(v); };
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     fd.set("unit", unit);
     fd.set("category", category);
+    fd.set("material_type", materialType);
     onSubmit(fd);
   }
 
@@ -209,6 +215,28 @@ function MateriaPrimaForm({
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        {/* Tipo de material */}
+        <div className="col-span-2 space-y-1.5">
+          <Label>Tipo *</Label>
+          <Select value={materialType} onValueChange={handleMaterialTypeChange}>
+            <SelectTrigger>
+              <SelectValue>
+                {(v: string | null) => MATERIAL_TYPE_LABELS[v as keyof typeof MATERIAL_TYPE_LABELS] ?? v ?? "—"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {MATERIAL_TYPES.map((t) => (
+                <SelectItem key={t} value={t}>
+                  {MATERIAL_TYPE_LABELS[t]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Intermedio = elaboración propia (tapas, masa, relleno). Producto terminado = listo para vender.
+          </p>
         </div>
 
         {/* Descripción */}
@@ -376,6 +404,7 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
   const [data, setData] = useState<MateriaPrima[]>(initialData);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<MateriaPrima | null>(null);
   const [deleting, setDeleting] = useState<MateriaPrima | null>(null);
@@ -389,7 +418,8 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
       m.name.toLowerCase().includes(search.toLowerCase()) ||
       (m.description ?? "").toLowerCase().includes(search.toLowerCase());
     const matchCat = categoryFilter === "all" || m.category === categoryFilter;
-    return matchSearch && matchCat;
+    const matchType = typeFilter === "all" || m.material_type === typeFilter;
+    return matchSearch && matchCat && matchType;
   });
 
   const hasExpandableContent = (m: MateriaPrima) =>
@@ -479,6 +509,25 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
             className="pl-9"
           />
         </div>
+        <Select value={typeFilter} onValueChange={(v) => { if (v) setTypeFilter(v); }}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Todos los tipos">
+              {(v: string | null) =>
+                !v || v === "all"
+                  ? "Todos los tipos"
+                  : (MATERIAL_TYPE_LABELS[v as keyof typeof MATERIAL_TYPE_LABELS] ?? v)
+              }
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los tipos</SelectItem>
+            {MATERIAL_TYPES.map((t) => (
+              <SelectItem key={t} value={t}>
+                {MATERIAL_TYPE_LABELS[t]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={categoryFilter} onValueChange={(v) => { if (v) setCategoryFilter(v); }}>
           <SelectTrigger className="w-48">
             <SelectValue placeholder="Todas las categorías">
@@ -559,9 +608,24 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
                       }
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {CATEGORY_LABELS[m.category]}
-                      </Badge>
+                      <div className="flex flex-col gap-1">
+                        <Badge variant="outline" className="text-xs w-fit">
+                          {CATEGORY_LABELS[m.category]}
+                        </Badge>
+                        {m.material_type !== "materia_prima" && (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-xs w-fit",
+                              m.material_type === "intermedio"
+                                ? "border-amber-300 text-amber-700 bg-amber-50"
+                                : "border-violet-300 text-violet-700 bg-violet-50"
+                            )}
+                          >
+                            {MATERIAL_TYPE_LABELS[m.material_type]}
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">
                       {applyingPrice === m.id

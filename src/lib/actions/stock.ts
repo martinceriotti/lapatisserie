@@ -5,12 +5,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type ActionResult = { success: true } | { error: string };
 
+export type MaterialType = "materia_prima" | "intermedio" | "producto_terminado";
+
 export type StockItem = {
   id: string;
   name: string;
   unit: string;
   stock_quantity: number;
   current_price: number;
+  material_type: MaterialType;
 };
 
 export type StockMovement = {
@@ -28,7 +31,7 @@ export async function getStockLevels(): Promise<StockItem[]> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("raw_materials")
-    .select("id, name, unit, stock_quantity, current_price")
+    .select("id, name, unit, stock_quantity, current_price, material_type")
     .eq("is_active", true)
     .order("name");
   if (error) throw error;
@@ -52,7 +55,8 @@ export async function getStockMovements(rawMaterialId: string): Promise<StockMov
 export async function registerPurchase(
   rawMaterialId: string,
   quantity: number,
-  notes: string
+  notes: string,
+  reason: "compra" | "produccion" = "compra"
 ): Promise<ActionResult> {
   if (quantity <= 0) return { error: "La cantidad debe ser mayor a 0" };
 
@@ -74,7 +78,7 @@ export async function registerPurchase(
     supabase.from("stock_movements").insert([{
       raw_material_id: rawMaterialId,
       quantity,
-      reason: "compra",
+      reason,
       notes: notes || null,
     }]),
   ]);

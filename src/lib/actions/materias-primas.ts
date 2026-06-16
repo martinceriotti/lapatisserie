@@ -3,13 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
-import { UNITS, CATEGORIES } from "@/lib/constants/materias-primas";
+import { UNITS, CATEGORIES, MATERIAL_TYPES } from "@/lib/constants/materias-primas";
 
 const schema = z.object({
   name: z.string().min(1, "Nombre requerido").max(200),
   description: z.string().max(500).optional(),
   unit: z.enum(UNITS),
   category: z.enum(CATEGORIES),
+  material_type: z.enum(MATERIAL_TYPES).default("materia_prima"),
   current_price: z.coerce.number().nonnegative("El precio debe ser 0 o mayor"),
   is_active: z.coerce.boolean().default(true),
 });

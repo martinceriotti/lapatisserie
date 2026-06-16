@@ -1,5 +1,6 @@
 export const UNITS = ["g", "kg", "ml", "l", "unidad", "sobre", "taza"] as const;
 export const CATEGORIES = ["dairy", "eggs", "flour", "chocolate", "sugar", "fruit", "nuts", "powders", "packaging", "other"] as const;
+export const MATERIAL_TYPES = ["materia_prima", "intermedio", "producto_terminado"] as const;
 
 export const CATEGORY_LABELS: Record<typeof CATEGORIES[number], string> = {
   dairy: "Lácteos",
@@ -12,6 +13,12 @@ export const CATEGORY_LABELS: Record<typeof CATEGORIES[number], string> = {
   powders: "Polvos",
   packaging: "Packaging",
   other: "Otros",
+};
+
+export const MATERIAL_TYPE_LABELS: Record<typeof MATERIAL_TYPES[number], string> = {
+  materia_prima: "Materia prima",
+  intermedio: "Intermedio",
+  producto_terminado: "Producto terminado",
 };
 
 export const UNIT_LABELS: Record<typeof UNITS[number], string> = {
