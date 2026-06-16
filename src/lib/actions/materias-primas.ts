@@ -5,12 +5,20 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
 import { UNITS, CATEGORIES, MATERIAL_TYPES } from "@/lib/constants/materias-primas";
 
+export type RecipeOption = {
+  id: string;
+  name: string;
+  yield_quantity: number;
+  yield_unit: string;
+};
+
 const schema = z.object({
   name: z.string().min(1, "Nombre requerido").max(200),
   description: z.string().max(500).optional(),
   unit: z.enum(UNITS),
   category: z.enum(CATEGORIES),
   material_type: z.enum(MATERIAL_TYPES).default("materia_prima"),
+  recipe_id: z.string().uuid().optional().or(z.literal("")),
   current_price: z.coerce.number().nonnegative("El precio debe ser 0 o mayor"),
   is_active: z.coerce.boolean().default(true),
 });
@@ -30,7 +38,10 @@ export async function createMateriaPrima(
   if (!parsed.success) return { error: parsed.error.flatten().fieldErrors };
 
   const supabase = createAdminClient();
-  const { error } = await supabase.from("raw_materials").insert([parsed.data]);
+  const { error } = await supabase.from("raw_materials").insert([{
+    ...parsed.data,
+    recipe_id: parsed.data.recipe_id || null,
+  }]);
   if (error) return { error: { _: [error.message] } };
 
   revalidatePath("/admin/materias-primas");
@@ -49,7 +60,7 @@ export async function updateMateriaPrima(
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("raw_materials")
-    .update(parsed.data)
+    .update({ ...parsed.data, recipe_id: parsed.data.recipe_id || null })
     .eq("id", id);
   if (error) return { error: { _: [error.message] } };
 
@@ -63,6 +74,50 @@ export async function deleteMateriaPrima(id: string): Promise<ActionResult> {
   if (error) return { error: error.message };
 
   revalidatePath("/admin/materias-primas");
+  return { success: true };
+}
+
+export async function getRecipesForMaterials(): Promise<RecipeOption[]> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("recipes")
+    .select("id, name, yield_quantity, yield_unit")
+    .eq("is_active", true)
+    .order("name");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function syncIntermediatePrice(id: string): Promise<ActionResult> {
+  const supabase = createAdminClient();
+
+  const { data: rm } = await supabase
+    .from("raw_materials")
+    .select("recipe_id")
+    .eq("id", id)
+    .single();
+
+  if (!rm?.recipe_id) return { error: "No tiene receta vinculada." };
+
+  const { data: cost } = await supabase
+    .from("recipe_costs")
+    .select("cost_per_unit")
+    .eq("recipe_id", rm.recipe_id)
+    .single();
+
+  if (!cost?.cost_per_unit) {
+    return { error: "La receta no tiene costo calculado. Revisá que tenga ingredientes con precio." };
+  }
+
+  const { error } = await supabase
+    .from("raw_materials")
+    .update({ current_price: cost.cost_per_unit })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/materias-primas");
+  revalidatePath("/admin/recetas");
   return { success: true };
 }
 

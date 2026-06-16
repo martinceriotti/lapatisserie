@@ -5,6 +5,8 @@ import {
   createMateriaPrima,
   updateMateriaPrima,
   deleteMateriaPrima,
+  syncIntermediatePrice,
+  type RecipeOption,
 } from "@/lib/actions/materias-primas";
 import { applySupplierPrice } from "@/lib/actions/suppliers";
 import {
@@ -52,7 +54,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, ChevronDown, Search, Loader2, CheckCircle2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronDown, Search, Loader2, CheckCircle2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Supplier = { id: string; name: string };
@@ -84,6 +86,7 @@ type MateriaPrima = {
   unit: typeof UNITS[number];
   category: typeof CATEGORIES[number];
   material_type: typeof MATERIAL_TYPES[number];
+  recipe_id: string | null;
   current_price: number;
   price_per_gram: number;
   is_active: boolean;
@@ -111,11 +114,13 @@ type FormErrors = Record<string, string[]>;
 
 function MateriaPrimaForm({
   defaultValues,
+  recipes,
   onSubmit,
   loading,
   errors,
 }: {
   defaultValues?: Partial<MateriaPrima>;
+  recipes: RecipeOption[];
   onSubmit: (fd: FormData) => void;
   loading: boolean;
   errors: FormErrors | null;
@@ -123,6 +128,7 @@ function MateriaPrimaForm({
   const [unit, setUnit] = useState<string>(defaultValues?.unit ?? "g");
   const [category, setCategory] = useState<string>(defaultValues?.category ?? "other");
   const [materialType, setMaterialType] = useState<string>(defaultValues?.material_type ?? "materia_prima");
+  const [recipeId, setRecipeId] = useState<string>(defaultValues?.recipe_id ?? "");
 
   const handleUnitChange = (v: string | null) => { if (v) setUnit(v); };
   const handleCategoryChange = (v: string | null) => { if (v) setCategory(v); };
@@ -134,6 +140,7 @@ function MateriaPrimaForm({
     fd.set("unit", unit);
     fd.set("category", category);
     fd.set("material_type", materialType);
+    fd.set("recipe_id", recipeId);
     onSubmit(fd);
   }
 
@@ -238,6 +245,35 @@ function MateriaPrimaForm({
             Intermedio = elaboración propia (tapas, masa, relleno). Producto terminado = listo para vender.
           </p>
         </div>
+
+        {/* Receta vinculada — solo para no-materia_prima */}
+        {materialType !== "materia_prima" && (
+          <div className="col-span-2 space-y-1.5">
+            <Label>Receta vinculada</Label>
+            <Select value={recipeId} onValueChange={(v) => setRecipeId(v ?? "")}>
+              <SelectTrigger>
+                <SelectValue>
+                  {(v: string | null) => {
+                    if (!v) return "Sin receta";
+                    const r = recipes.find((r) => r.id === v);
+                    return r ? `${r.name} (rinde ${r.yield_quantity} ${r.yield_unit})` : "Sin receta";
+                  }}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Sin receta</SelectItem>
+                {recipes.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.name} — rinde {r.yield_quantity} {r.yield_unit}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Con receta vinculada podés sincronizar el precio desde el costo calculado.
+            </p>
+          </div>
+        )}
 
         {/* Descripción */}
         <div className="col-span-2 space-y-1.5">
@@ -400,7 +436,7 @@ function ExpandedRow({ m, onApplyPrice }: {
   );
 }
 
-export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) {
+export function MateriasTable({ initialData, recipes }: { initialData: MateriaPrima[]; recipes: RecipeOption[] }) {
   const [data, setData] = useState<MateriaPrima[]>(initialData);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -411,6 +447,7 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
   const [formErrors, setFormErrors] = useState<FormErrors | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [applyingPrice, setApplyingPrice] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const filtered = data.filter((m) => {
@@ -495,6 +532,19 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
     },
     []
   );
+
+  const handleSync = useCallback((id: string) => {
+    setSyncing(id);
+    startTransition(async () => {
+      const result = await syncIntermediatePrice(id);
+      setSyncing(null);
+      if ("error" in result) {
+        alert(typeof result.error === "string" ? result.error : "Error al sincronizar precio");
+        return;
+      }
+      window.location.reload();
+    });
+  }, []);
 
   return (
     <>
@@ -628,10 +678,24 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">
-                      {applyingPrice === m.id
-                        ? <Loader2 className="w-3.5 h-3.5 animate-spin ml-auto" />
-                        : formatPrice(m.current_price)
-                      }
+                      <div className="flex items-center justify-end gap-1.5">
+                        {applyingPrice === m.id || syncing === m.id
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : formatPrice(m.current_price)
+                        }
+                        {m.recipe_id && m.material_type !== "materia_prima" && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-muted-foreground hover:text-primary"
+                            onClick={() => handleSync(m.id)}
+                            disabled={syncing === m.id}
+                            title="Sincronizar precio desde receta"
+                          >
+                            <RefreshCw className={cn("w-3 h-3", syncing === m.id && "animate-spin")} />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right font-mono text-xs text-muted-foreground">
                       {["g", "kg", "ml", "l"].includes(m.unit) && m.price_per_gram != null
@@ -725,6 +789,7 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
             <DialogTitle>Nueva materia prima</DialogTitle>
           </DialogHeader>
           <MateriaPrimaForm
+            recipes={recipes}
             onSubmit={handleCreate}
             loading={isPending}
             errors={formErrors}
@@ -763,6 +828,7 @@ export function MateriasTable({ initialData }: { initialData: MateriaPrima[] }) 
           {editing && (
             <MateriaPrimaForm
               defaultValues={editing}
+              recipes={recipes}
               onSubmit={handleUpdate}
               loading={isPending}
               errors={formErrors}
