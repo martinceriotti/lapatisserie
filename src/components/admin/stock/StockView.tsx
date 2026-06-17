@@ -50,12 +50,14 @@ const REASON_LABELS: Record<StockMovement["reason"], string> = {
   compra: "Compra",
   ajuste: "Ajuste",
   produccion: "Producción",
+  venta: "Venta",
 };
 
 const REASON_COLORS: Record<StockMovement["reason"], string> = {
   compra: "bg-green-100 text-green-700",
   ajuste: "bg-blue-100 text-blue-700",
   produccion: "bg-orange-100 text-orange-700",
+  venta: "bg-red-100 text-red-700",
 };
 
 // ── Sub-dialogs ────────────────────────────────────────────────────────────────

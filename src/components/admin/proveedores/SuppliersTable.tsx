@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useEffect, useTransition, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   createSupplier,
@@ -192,7 +193,9 @@ function SupplierForm({
 }
 
 export function SuppliersTable({ initialData }: { initialData: Supplier[] }) {
-  const [data] = useState<Supplier[]>(initialData);
+  const router = useRouter();
+  const [data, setData] = useState<Supplier[]>(initialData);
+  useEffect(() => { setData(initialData); }, [initialData]);
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<Supplier | null>(null);
   const [deleting, setDeleting] = useState<Supplier | null>(null);
@@ -212,7 +215,7 @@ export function SuppliersTable({ initialData }: { initialData: Supplier[] }) {
       }
       setOpenForm(false);
       setFormErrors(null);
-      window.location.reload();
+      router.refresh();
     });
   }, []);
 
@@ -230,7 +233,7 @@ export function SuppliersTable({ initialData }: { initialData: Supplier[] }) {
       }
       setEditing(null);
       setFormErrors(null);
-      window.location.reload();
+      router.refresh();
     });
   }, [editing]);
 
@@ -239,7 +242,7 @@ export function SuppliersTable({ initialData }: { initialData: Supplier[] }) {
     startTransition(async () => {
       await deleteSupplier(deleting.id);
       setDeleting(null);
-      window.location.reload();
+      router.refresh();
     });
   }, [deleting]);
 

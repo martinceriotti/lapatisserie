@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { extractPricelist, importParsedItems } from "@/lib/actions/import";
 import type { ParsedItem } from "@/lib/parsers";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ export function ImportPricelist({
   ivaRate: number;
   existingSkus: Set<string>;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("upload");
   const [isPending, startTransition] = useTransition();
@@ -409,7 +411,7 @@ export function ImportPricelist({
                 </div>
                 <Button
                   className="gradient-brand text-white border-0 mt-2"
-                  onClick={() => { handleOpen(false); window.location.reload(); }}
+                  onClick={() => { handleOpen(false); router.refresh(); }}
                 >
                   Ver catálogo actualizado
                 </Button>

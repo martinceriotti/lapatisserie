@@ -16,7 +16,7 @@ export default async function PedidoDetailPage({
 
   const [order, products, customers] = await Promise.all([
     getOrder(id).catch(() => null),
-    getProductsForOrder(settings.sale_price_factor),
+    getProductsForOrder(),
     getCustomers(),
   ]);
 

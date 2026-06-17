@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useEffect, useTransition, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   createMateriaPrima,
   updateMateriaPrima,
@@ -16,6 +17,8 @@ import {
   UNIT_LABELS,
   MATERIAL_TYPES,
   MATERIAL_TYPE_LABELS,
+  INGREDIENT_CATEGORIES,
+  PRODUCT_CATEGORIES,
 } from "@/lib/constants/materias-primas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,6 +91,7 @@ type MateriaPrima = {
   material_type: typeof MATERIAL_TYPES[number];
   recipe_id: string | null;
   current_price: number;
+  sale_price: number | null;
   price_per_gram: number;
   is_active: boolean;
   price_history: PriceHistory[];
@@ -130,9 +134,19 @@ function MateriaPrimaForm({
   const [materialType, setMaterialType] = useState<string>(defaultValues?.material_type ?? "materia_prima");
   const [recipeId, setRecipeId] = useState<string>(defaultValues?.recipe_id ?? "");
 
+  const visibleCategories = materialType === "producto_terminado" ? PRODUCT_CATEGORIES : INGREDIENT_CATEGORIES;
+
   const handleUnitChange = (v: string | null) => { if (v) setUnit(v); };
   const handleCategoryChange = (v: string | null) => { if (v) setCategory(v); };
-  const handleMaterialTypeChange = (v: string | null) => { if (v) setMaterialType(v); };
+  const handleMaterialTypeChange = (v: string | null) => {
+    if (!v) return;
+    setMaterialType(v);
+    if (v === "producto_terminado" && (INGREDIENT_CATEGORIES as readonly string[]).includes(category) && category !== "other") {
+      setCategory("otros_productos");
+    } else if (v !== "producto_terminado" && (PRODUCT_CATEGORIES as readonly string[]).includes(category)) {
+      setCategory("other");
+    }
+  };
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -215,11 +229,14 @@ function MateriaPrimaForm({
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {CATEGORIES.map((c) => (
+              {visibleCategories.map((c) => (
                 <SelectItem key={c} value={c}>
                   {CATEGORY_LABELS[c]}
                 </SelectItem>
               ))}
+              {materialType === "producto_terminado" && (
+                <SelectItem value="other">{CATEGORY_LABELS["other"]}</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -245,6 +262,26 @@ function MateriaPrimaForm({
             Intermedio = elaboración propia (tapas, masa, relleno). Producto terminado = listo para vender.
           </p>
         </div>
+
+        {/* Precio de venta — solo para producto terminado */}
+        {materialType === "producto_terminado" && (
+          <div className="space-y-1.5">
+            <Label htmlFor="sale_price">Precio de venta</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+              <Input
+                id="sale_price"
+                name="sale_price"
+                type="number"
+                step="0.01"
+                min="0"
+                defaultValue={defaultValues?.sale_price ?? ""}
+                className="pl-6"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Receta vinculada — solo para no-materia_prima */}
         {materialType !== "materia_prima" && (
@@ -441,7 +478,9 @@ function ExpandedRow({ m, onApplyPrice }: {
 }
 
 export function MateriasTable({ initialData, recipes }: { initialData: MateriaPrima[]; recipes: RecipeOption[] }) {
+  const router = useRouter();
   const [data, setData] = useState<MateriaPrima[]>(initialData);
+  useEffect(() => { setData(initialData); }, [initialData]);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -480,7 +519,7 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
         }
         setOpenForm(false);
         setFormErrors(null);
-        window.location.reload();
+        router.refresh();
       });
     },
     []
@@ -501,7 +540,7 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
         }
         setEditing(null);
         setFormErrors(null);
-        window.location.reload();
+        router.refresh();
       });
     },
     [editing]
@@ -512,7 +551,7 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
     startTransition(async () => {
       await deleteMateriaPrima(deleting.id);
       setDeleting(null);
-      window.location.reload();
+      router.refresh();
     });
   }, [deleting]);
 
@@ -531,7 +570,7 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
           alert(typeof result.error === "string" ? result.error : "Error al actualizar precio");
           return;
         }
-        window.location.reload();
+        router.refresh();
       });
     },
     []
@@ -546,7 +585,7 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
         alert(typeof result.error === "string" ? result.error : "Error al sincronizar precio");
         return;
       }
-      window.location.reload();
+      router.refresh();
     });
   }, []);
 
@@ -683,10 +722,17 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">
                       <div className="flex items-center justify-end gap-1.5">
-                        {applyingPrice === m.id || syncing === m.id
-                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          : formatPrice(m.current_price)
-                        }
+                        <div className="text-right">
+                          {applyingPrice === m.id || syncing === m.id
+                            ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            : <span>{formatPrice(m.current_price)}</span>
+                          }
+                          {m.material_type === "producto_terminado" && m.sale_price != null && (
+                            <p className="text-xs text-muted-foreground font-normal">
+                              Venta: {formatPrice(m.sale_price)}
+                            </p>
+                          )}
+                        </div>
                         {m.recipe_id && m.material_type !== "materia_prima" && (
                           <Button
                             variant="ghost"

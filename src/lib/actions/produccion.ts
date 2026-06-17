@@ -39,7 +39,7 @@ export async function getProductionPlan(from: string, to: string): Promise<Produ
       customer:customers(name),
       items:order_items(
         quantity,
-        product:products(id, name, type, portion_qty, recipe_id)
+        raw_material:raw_materials(id, name, recipe_id)
       )
     `)
     .gte("delivery_date", from)
@@ -50,11 +50,11 @@ export async function getProductionPlan(from: string, to: string): Promise<Produ
   if (ordersError) throw ordersError;
   const orders = ordersData ?? [];
 
-  // 2. Collect unique recipe IDs
+  // 2. Collect unique recipe IDs from raw_materials linked to order items
   const recipeIds = [
     ...new Set(
       orders
-        .flatMap((o) => (o.items as any[]).map((i) => i.product?.recipe_id))
+        .flatMap((o) => (o.items as any[]).map((i) => i.raw_material?.recipe_id))
         .filter(Boolean) as string[]
     ),
   ];
@@ -88,25 +88,23 @@ export async function getProductionPlan(from: string, to: string): Promise<Produ
   for (const order of orders) {
     const customerName = (order.customer as any)?.name ?? "—";
     for (const item of (order.items as any[])) {
-      const p = item.product;
-      if (!p) continue;
-      const key = p.id;
+      const rm = item.raw_material;
+      if (!rm) continue;
+      const key = rm.id;
       if (!productMap.has(key)) {
         productMap.set(key, {
-          product_id: p.id,
-          product_name: p.name,
-          recipe_id: p.recipe_id ?? null,
-          recipe_name: p.recipe_id ? (recipesMap.get(p.recipe_id)?.name ?? null) : null,
+          product_id: rm.id,
+          product_name: rm.name,
+          recipe_id: rm.recipe_id ?? null,
+          recipe_name: rm.recipe_id ? (recipesMap.get(rm.recipe_id)?.name ?? null) : null,
           total_quantity: 0,
-          unit: p.type === "receta_completa" ? "receta(s)" : "unidad(es)",
+          unit: "unidad(es)",
           orders: [],
         });
       }
       const entry = productMap.get(key)!;
       const itemQty = Number(item.quantity);
-      const portionQty = p.type === "porcion" ? Number(p.portion_qty ?? 1) : 1;
-      const effectiveQty = itemQty * portionQty;
-      entry.total_quantity += effectiveQty;
+      entry.total_quantity += itemQty;
       entry.orders.push({
         order_number: order.order_number,
         customer: customerName,
@@ -144,7 +142,7 @@ export async function getProductionPlan(from: string, to: string): Promise<Produ
     }
   }
 
-  // 6. Fetch stock levels for the relevant raw materials
+  // 6. Fetch stock levels
   const ingredientIds = Array.from(ingredientMap.keys());
   if (ingredientIds.length > 0) {
     const { data: stockData } = await supabase

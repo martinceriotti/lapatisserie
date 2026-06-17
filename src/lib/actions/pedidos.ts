@@ -21,34 +21,22 @@ export type Customer = {
   created_at: string;
 };
 
-export type ProductVariant = {
-  id: string;
-  name: string;
-  price_override: number | null;
-  additional_cost: number | null;
-  is_active: boolean;
-};
-
 export type ProductForOrder = {
   id: string;
   name: string;
-  base_price: number | null;
-  suggested_price: number | null;
-  variants: ProductVariant[];
+  sale_price: number | null;
 };
 
 export type OrderItem = {
   id: string;
   order_id: string;
-  product_id: string;
-  variant_id: string | null;
+  raw_material_id: string | null;
   description: string;
   quantity: number;
   unit_price: number;
   customization: string | null;
   notes: string | null;
-  product: { id: string; name: string } | null;
-  variant: { id: string; name: string } | null;
+  raw_material: { id: string; name: string } | null;
 };
 
 export type Order = {
@@ -103,42 +91,16 @@ export async function getCustomers(): Promise<Customer[]> {
   return data ?? [];
 }
 
-export async function getProductsForOrder(salePriceFactor = 3): Promise<ProductForOrder[]> {
+export async function getProductsForOrder(): Promise<ProductForOrder[]> {
   const supabase = createAdminClient();
-  const [productsRes, costsRes] = await Promise.all([
-    supabase
-      .from("products")
-      .select(`
-        id, name, base_price, type, portion_qty, recipe_id,
-        variants:product_variants(id, name, price_override, additional_cost, is_active)
-      `)
-      .eq("is_active", true)
-      .order("name"),
-    supabase.from("recipe_costs").select("recipe_id, cost_per_unit, total_cost"),
-  ]);
-  if (productsRes.error) throw productsRes.error;
-
-  const costsMap = new Map(
-    (costsRes.data ?? []).map((c) => [c.recipe_id as string, c])
-  );
-
-  return (productsRes.data ?? []).map((p) => {
-    const cost = p.recipe_id ? costsMap.get(p.recipe_id) : null;
-    let suggested_price: number | null = p.base_price;
-    if (suggested_price == null && cost) {
-      const base = p.type === "receta_completa"
-        ? cost.total_cost
-        : cost.cost_per_unit * (p.portion_qty ?? 1);
-      suggested_price = Math.round(base * salePriceFactor);
-    }
-    return {
-      id: p.id,
-      name: p.name,
-      base_price: p.base_price,
-      suggested_price,
-      variants: ((p.variants as ProductVariant[]) ?? []).filter((v) => v.is_active),
-    };
-  });
+  const { data, error } = await supabase
+    .from("raw_materials")
+    .select("id, name, sale_price")
+    .eq("material_type", "producto_terminado")
+    .eq("is_active", true)
+    .order("name");
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function getOrders(): Promise<OrderSummary[]> {
@@ -171,10 +133,9 @@ export async function getOrder(id: string): Promise<OrderWithItems> {
       payment_status, notes, created_at, updated_at,
       customer:customers(id, name, phone, email, address, neighborhood, notes, created_at),
       items:order_items(
-        id, order_id, product_id, variant_id, description, quantity, unit_price,
+        id, order_id, raw_material_id, description, quantity, unit_price,
         customization, notes,
-        product:products(id, name),
-        variant:product_variants(id, name)
+        raw_material:raw_materials(id, name)
       )
     `)
     .eq("id", id)
@@ -297,6 +258,34 @@ export async function updateOrderStatus(
     .eq("id", id);
   if (error) return { error: error.message };
 
+  // Deduct finished product stock when order is delivered
+  if (status === "entregado") {
+    const { data: items } = await supabase
+      .from("order_items")
+      .select("quantity, raw_material_id, description, raw_material:raw_materials(stock_quantity)")
+      .eq("order_id", id)
+      .not("raw_material_id", "is", null);
+
+    for (const item of items ?? []) {
+      if (!item.raw_material_id) continue;
+      const rm = item.raw_material as any;
+      const qty = Number(item.quantity);
+      const current = Number(rm?.stock_quantity ?? 0);
+      await Promise.all([
+        supabase.from("raw_materials")
+          .update({ stock_quantity: current - qty })
+          .eq("id", item.raw_material_id),
+        supabase.from("stock_movements").insert([{
+          raw_material_id: item.raw_material_id,
+          quantity: -qty,
+          reason: "venta",
+          notes: `Pedido entregado — ${item.description ?? ""}`,
+        }]),
+      ]);
+    }
+    revalidatePath("/admin/stock");
+  }
+
   revalidatePath(`/admin/pedidos/${id}`);
   revalidatePath("/admin/pedidos");
   return { success: true };
@@ -324,12 +313,6 @@ export async function updatePaymentStatus(
 
 export async function updateDiscount(id: string, discount: number): Promise<ActionResult> {
   const supabase = createAdminClient();
-  const { data: order } = await supabase
-    .from("orders")
-    .select("subtotal")
-    .eq("id", id)
-    .single();
-
   const { error } = await supabase
     .from("orders")
     .update({ discount, updated_at: new Date().toISOString() })
@@ -344,8 +327,7 @@ export async function updateDiscount(id: string, discount: number): Promise<Acti
 
 export async function addOrderItem(
   orderId: string,
-  productId: string,
-  variantId: string | null,
+  rawMaterialId: string,
   description: string,
   quantity: number,
   unitPrice: number,
@@ -354,8 +336,7 @@ export async function addOrderItem(
   const supabase = createAdminClient();
   const { error } = await supabase.from("order_items").insert([{
     order_id: orderId,
-    product_id: productId,
-    variant_id: variantId || null,
+    raw_material_id: rawMaterialId,
     description,
     quantity,
     unit_price: unitPrice,

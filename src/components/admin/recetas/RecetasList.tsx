@@ -264,7 +264,7 @@ export function RecetasList({ initialData, categories, salePriceFactor }: Props)
     startTransition(async () => {
       await deleteRecipe(deleting.id);
       setDeleting(null);
-      window.location.reload();
+      router.refresh();
     });
   }, [deleting]);
 

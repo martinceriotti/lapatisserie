@@ -20,7 +20,7 @@ export type StockMovement = {
   id: string;
   raw_material_id: string;
   quantity: number;
-  reason: "compra" | "ajuste" | "produccion";
+  reason: "compra" | "ajuste" | "produccion" | "venta";
   notes: string | null;
   created_at: string;
 };

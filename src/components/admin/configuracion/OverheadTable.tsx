@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useEffect, useTransition, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   createOverheadItem,
   updateOverheadItem,
@@ -118,7 +119,9 @@ function OverheadForm({
 }
 
 export function OverheadTable({ initialData }: { initialData: OverheadItem[] }) {
+  const router = useRouter();
   const [items, setItems] = useState(initialData);
+  useEffect(() => { setItems(initialData); }, [initialData]);
   const [openCreate, setOpenCreate] = useState(false);
   const [editing, setEditing] = useState<OverheadItem | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors | null>(null);
@@ -139,7 +142,7 @@ export function OverheadTable({ initialData }: { initialData: OverheadItem[] }) 
       }
       setOpenCreate(false);
       setFormErrors(null);
-      window.location.reload();
+      router.refresh();
     });
   }, []);
 
@@ -155,7 +158,7 @@ export function OverheadTable({ initialData }: { initialData: OverheadItem[] }) 
       }
       setEditing(null);
       setFormErrors(null);
-      window.location.reload();
+      router.refresh();
     });
   }, [editing]);
 
@@ -163,14 +166,14 @@ export function OverheadTable({ initialData }: { initialData: OverheadItem[] }) 
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, is_active: !current } : i)));
     startTransition(async () => {
       const result = await toggleOverheadItem(id, !current);
-      if ("error" in result) window.location.reload();
+      if ("error" in result) router.refresh();
     });
   }, []);
 
   const handleDelete = useCallback((id: string) => {
     startTransition(async () => {
       await deleteOverheadItem(id);
-      window.location.reload();
+      router.refresh();
     });
   }, []);
 

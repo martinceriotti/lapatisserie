@@ -20,6 +20,7 @@ const schema = z.object({
   material_type: z.enum(MATERIAL_TYPES).default("materia_prima"),
   recipe_id: z.string().uuid().optional().or(z.literal("")),
   current_price: z.coerce.number().nonnegative("El precio debe ser 0 o mayor"),
+  sale_price: z.coerce.number().nonnegative().optional().or(z.literal("")),
   is_active: z.coerce.boolean().default(true),
 });
 
@@ -41,6 +42,7 @@ export async function createMateriaPrima(
   const { error } = await supabase.from("raw_materials").insert([{
     ...parsed.data,
     recipe_id: parsed.data.recipe_id || null,
+    sale_price: parsed.data.sale_price || null,
   }]);
   if (error) return { error: { _: [error.message] } };
 
@@ -60,7 +62,7 @@ export async function updateMateriaPrima(
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("raw_materials")
-    .update({ ...parsed.data, recipe_id: parsed.data.recipe_id || null })
+    .update({ ...parsed.data, recipe_id: parsed.data.recipe_id || null, sale_price: parsed.data.sale_price || null })
     .eq("id", id);
   if (error) return { error: { _: [error.message] } };
 

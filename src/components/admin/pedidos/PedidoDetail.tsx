@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   addOrderItem,
@@ -36,7 +36,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Trash2, Plus, Loader2, ChevronRight, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -77,7 +76,6 @@ function AddItemForm({
   onAdded: (item: OrderItem) => void;
 }) {
   const [productId, setProductId] = useState("");
-  const [variantId, setVariantId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(0);
   const [customization, setCustomization] = useState("");
@@ -85,37 +83,19 @@ function AddItemForm({
   const [error, setError] = useState<string | null>(null);
 
   const selectedProduct = products.find((p) => p.id === productId);
-  const selectedVariant = selectedProduct?.variants.find((v) => v.id === variantId);
 
   function handleProductChange(id: string | null) {
     setProductId(id ?? "");
-    setVariantId("");
     const p = products.find((p) => p.id === id);
-    setUnitPrice(p?.suggested_price ?? p?.base_price ?? 0);
-  }
-
-  function handleVariantChange(id: string | null) {
-    setVariantId(id ?? "");
-    if (!selectedProduct) return;
-    const v = selectedProduct.variants.find((v) => v.id === id);
-    if (!v) return;
-    const base = selectedProduct.suggested_price ?? selectedProduct.base_price ?? 0;
-    const price = v.price_override ?? base + (v.additional_cost ?? 0);
-    setUnitPrice(price);
-  }
-
-  function getDescription() {
-    if (!selectedProduct) return "";
-    if (selectedVariant) return `${selectedProduct.name} — ${selectedVariant.name}`;
-    return selectedProduct.name;
+    setUnitPrice(p?.sale_price ?? 0);
   }
 
   function handleAdd() {
     if (!productId || quantity <= 0) return;
     setError(null);
+    const desc = selectedProduct?.name ?? "";
     startTransition(async () => {
-      const desc = getDescription();
-      const result = await addOrderItem(orderId, productId, variantId || null, desc, quantity, unitPrice, customization);
+      const result = await addOrderItem(orderId, productId, desc, quantity, unitPrice, customization);
       if ("error" in result) {
         setError(typeof result.error === "string" ? result.error : "Error al agregar ítem");
         return;
@@ -123,18 +103,15 @@ function AddItemForm({
       onAdded({
         id: crypto.randomUUID(),
         order_id: orderId,
-        product_id: productId,
-        variant_id: variantId || null,
+        raw_material_id: productId,
         description: desc,
         quantity,
         unit_price: unitPrice,
         customization: customization || null,
         notes: null,
-        product: selectedProduct ? { id: selectedProduct.id, name: selectedProduct.name } : null,
-        variant: selectedVariant ? { id: selectedVariant.id, name: selectedVariant.name } : null,
+        raw_material: selectedProduct ? { id: selectedProduct.id, name: selectedProduct.name } : null,
       });
       setProductId("");
-      setVariantId("");
       setQuantity(1);
       setUnitPrice(0);
       setCustomization("");
@@ -145,7 +122,6 @@ function AddItemForm({
     <div className="border-t border-dashed border-border pt-4 space-y-3">
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Agregar ítem</p>
 
-      {/* Producto — ancho completo */}
       <div className="space-y-1">
         <Label className="text-xs">Producto</Label>
         <Select value={productId} onValueChange={handleProductChange}>
@@ -162,30 +138,7 @@ function AddItemForm({
         </Select>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        {/* Variante */}
-        <div className="space-y-1">
-          <Label className="text-xs">Variante</Label>
-          <Select
-            value={variantId}
-            onValueChange={handleVariantChange}
-            disabled={!selectedProduct || selectedProduct.variants.length === 0}
-          >
-            <SelectTrigger>
-              <SelectValue>
-                {(v: string | null) => v ? (selectedProduct?.variants.find((vv) => vv.id === v)?.name ?? "—") : "Sin variante"}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">Sin variante</SelectItem>
-              {selectedProduct?.variants.map((v) => (
-                <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Cantidad */}
+      <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Cantidad</Label>
           <Input
@@ -197,7 +150,6 @@ function AddItemForm({
           />
         </div>
 
-        {/* Precio unitario */}
         <div className="space-y-1">
           <Label className="text-xs">Precio unitario</Label>
           <div className="relative">
@@ -214,7 +166,6 @@ function AddItemForm({
         </div>
       </div>
 
-      {/* Personalización */}
       <Input
         placeholder="Personalización (opcional): 'Feliz cumpleaños María'..."
         value={customization}
@@ -252,6 +203,7 @@ function EditMetaDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const [customerId, setCustomerId] = useState(order.customer_id);
   const [isPending, startTransition] = useTransition();
   const [errors, setErrors] = useState<Record<string, string[]> | null>(null);
@@ -267,7 +219,7 @@ function EditMetaDialog({
         return;
       }
       onClose();
-      window.location.reload();
+      router.refresh();
     });
   }
 
@@ -351,7 +303,6 @@ export function PedidoDetail({
   const total = subtotal - discount;
   const suggestedDeposit = Math.round(total * depositPct / 100);
 
-  // Status flow
   const currentIdx = STATUS_FLOW.indexOf(status);
   const nextStatus = currentIdx >= 0 && currentIdx < STATUS_FLOW.length - 1
     ? STATUS_FLOW[currentIdx + 1]

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import {
   createCatalogItem,
   updateCatalogItem,
@@ -286,6 +287,7 @@ export function SupplierCatalogTable({
   initialData: CatalogItem[];
   rawMaterials: RawMaterial[];
 }) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<CatalogItem | null>(null);
@@ -310,7 +312,7 @@ export function SupplierCatalogTable({
       }
       setOpenForm(false);
       setFormErrors(null);
-      window.location.reload();
+      router.refresh();
     });
   }, [supplierId]);
 
@@ -324,7 +326,7 @@ export function SupplierCatalogTable({
       }
       setEditing(null);
       setFormErrors(null);
-      window.location.reload();
+      router.refresh();
     });
   }, [editing, supplierId]);
 
@@ -333,7 +335,7 @@ export function SupplierCatalogTable({
     startTransition(async () => {
       await deleteCatalogItem(deleting.id, supplierId);
       setDeleting(null);
-      window.location.reload();
+      router.refresh();
     });
   }, [deleting, supplierId]);
 
@@ -353,7 +355,7 @@ export function SupplierCatalogTable({
         alert(typeof result.error === "string" ? result.error : "Error al actualizar precio");
         return;
       }
-      window.location.reload();
+      router.refresh();
     });
   }, [supplierId, supplierName]);
 

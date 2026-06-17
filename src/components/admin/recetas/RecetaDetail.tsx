@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   updateRecipe,
@@ -229,6 +230,7 @@ function RecetaForm({
 }
 
 export function RecetaDetail({ recipe, categories, rawMaterials, salePriceFactor }: Props) {
+  const router = useRouter();
   const [openEdit, setOpenEdit] = useState(false);
   const [editErrors, setEditErrors] = useState<FormErrors | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -261,7 +263,7 @@ export function RecetaDetail({ recipe, categories, rawMaterials, salePriceFactor
       }
       setOpenEdit(false);
       setEditErrors(null);
-      window.location.reload();
+      router.refresh();
     });
   }, [recipe.id]);
 
@@ -282,14 +284,14 @@ export function RecetaDetail({ recipe, categories, rawMaterials, salePriceFactor
       setSelectedMpId("");
       setMpSearch("");
       setQuantity("");
-      window.location.reload();
+      router.refresh();
     });
   }, [recipe.id, selectedMpId, quantity, recipeUnit]);
 
   const handleRemoveIngredient = useCallback((id: string) => {
     startTransition(async () => {
       await removeIngredient(id, recipe.id);
-      window.location.reload();
+      router.refresh();
     });
   }, [recipe.id]);
 
