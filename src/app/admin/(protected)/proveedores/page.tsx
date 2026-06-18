@@ -6,7 +6,7 @@ export default async function ProveedoresPage() {
   const suppliers = await getSuppliers();
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
           <Truck className="w-6 h-6 text-primary" />

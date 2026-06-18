@@ -20,7 +20,7 @@ export default async function SupplierDetailPage({
   if (!supplier) notFound();
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       {/* Breadcrumb */}
       <div className="mb-6">
         <Link

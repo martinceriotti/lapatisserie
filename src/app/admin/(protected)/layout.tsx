@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { Sidebar } from "@/components/admin/Sidebar";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 export const metadata = { title: "Admin | La Patisserie" };
 
@@ -34,11 +34,8 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      <main className="flex-1 overflow-y-auto">
-        {children}
-      </main>
-    </div>
+    <AdminShell>
+      {children}
+    </AdminShell>
   );
 }

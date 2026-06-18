@@ -654,7 +654,8 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
       </div>
 
       {/* Table */}
-      <div className="border border-border rounded-2xl overflow-hidden bg-surface">
+      <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
+      <div className="min-w-[700px]">
         <Table>
           <TableHeader>
             <TableRow className="bg-accent/50 hover:bg-accent/50">
@@ -820,6 +821,7 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
             })}
           </TableBody>
         </Table>
+      </div>
       </div>
 
       <p className="text-xs text-muted-foreground mt-3">

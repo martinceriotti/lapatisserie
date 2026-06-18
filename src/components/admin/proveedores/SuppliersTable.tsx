@@ -163,6 +163,7 @@ function SupplierForm({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="0">0% (precio final)</SelectItem>
               <SelectItem value="0.105">10.5%</SelectItem>
               <SelectItem value="0.21">21%</SelectItem>
             </SelectContent>

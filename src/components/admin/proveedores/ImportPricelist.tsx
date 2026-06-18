@@ -34,8 +34,15 @@ const PARSER_LABELS: Record<string, string> = {
 // IVA note per parser: explains how prices were computed
 const IVA_NOTES: Record<string, (rate: number) => string> = {
   cepro: () => "CEPRO incluye ambos precios (neto y final) en el PDF.",
-  drovandi: (r) => `Drovandi: precio final incluye IVA ${(r * 100).toFixed(1)}%. Precio neto calculado.`,
-  lodiser: (r) => `Lodiser: precio sin IVA. Precio final calculado sumando ${(r * 100).toFixed(1)}% IVA.`,
+  drovandi: (r) => r === 0
+    ? "Drovandi: IVA 0% — precio neto = precio final (lista ya es precio final)."
+    : `Drovandi: precio final incluye IVA ${(r * 100).toFixed(1)}%. Precio neto calculado.`,
+  lodiser: (r) => r === 0
+    ? "Lodiser: IVA 0% — precio neto = precio final (lista ya es precio final)."
+    : `Lodiser: precio sin IVA. Precio final calculado sumando ${(r * 100).toFixed(1)}% IVA.`,
+  pira: (r) => r === 0
+    ? "PIRA: IVA 0% — precio neto = precio final (lista ya es precio final)."
+    : `PIRA: precio sin IVA. Precio final calculado sumando ${(r * 100).toFixed(1)}% IVA.`,
 };
 
 type Step = "upload" | "preview" | "done";

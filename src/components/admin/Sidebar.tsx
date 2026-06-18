@@ -15,6 +15,7 @@ import {
   Settings,
   ChefHat,
   Boxes,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -29,7 +30,7 @@ const navItems = [
   { href: "/admin/configuracion", label: "Configuración", icon: Settings },
 ];
 
-export function Sidebar() {
+export function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -50,17 +51,28 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-60 min-h-screen bg-surface border-r border-border flex flex-col">
+    <aside className="w-60 h-full min-h-screen bg-surface border-r border-border flex flex-col">
       {/* Brand */}
-      <div className="px-5 py-5 border-b border-border">
-        <Link href="/admin">
-          <span className="font-script text-2xl gradient-brand-text leading-none">
-            La Patisserie
-          </span>
-        </Link>
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-0.5">
-          Admin
-        </p>
+      <div className="px-5 py-5 border-b border-border flex items-start justify-between">
+        <div>
+          <Link href="/admin" onClick={onClose}>
+            <span className="font-script text-2xl gradient-brand-text leading-none">
+              La Patisserie
+            </span>
+          </Link>
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground mt-0.5">
+            Admin
+          </p>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden mt-0.5 p-1 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+            aria-label="Cerrar menú"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Nav */}
@@ -71,6 +83,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onClose}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group",
                 active

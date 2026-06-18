@@ -387,13 +387,13 @@ export function PedidoDetail({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => router.push("/admin/pedidos")}>
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => router.push("/admin/pedidos")}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div>
-            <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="font-heading text-2xl">{initialOrder.order_number}</h1>
               <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", STATUS_COLORS[status])}>
                 {STATUS_LABELS[status]}
@@ -404,14 +404,14 @@ export function PedidoDetail({
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
           <Button variant="outline" size="sm" onClick={() => setOpenEdit(true)}>
             <Pencil className="w-3.5 h-3.5 mr-1.5" />
             Editar
           </Button>
           {status !== "cancelado" && status !== "pagado" && (
             <Button variant="outline" size="sm" className="text-destructive hover:text-destructive" onClick={handleCancelOrder}>
-              Cancelar pedido
+              Cancelar
             </Button>
           )}
           <Button variant="ghost" size="sm" className="text-destructive/60 hover:text-destructive" onClick={handleDelete}>
@@ -458,9 +458,9 @@ export function PedidoDetail({
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: info + items */}
-        <div className="col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-4">
           {/* Customer + dates */}
           <div className="border border-border rounded-2xl p-4 space-y-3">
             <div className="grid grid-cols-2 gap-4">
@@ -502,7 +502,8 @@ export function PedidoDetail({
                 Sin ítems todavía. Agregá productos abajo.
               </p>
             ) : (
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto -mx-1">
+              <table className="w-full text-sm min-w-[340px]">
                 <thead>
                   <tr className="border-b border-border">
                     <th className="text-left py-2 font-medium text-muted-foreground">Descripción</th>
@@ -539,6 +540,7 @@ export function PedidoDetail({
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
 
             <AddItemForm orderId={initialOrder.id} products={products} onAdded={handleAddItem} />

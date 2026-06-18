@@ -273,58 +273,100 @@ function ListView({ orders }: { orders: OrderSummary[] }) {
           <p className="text-muted-foreground text-sm">Sin pedidos en esta categoría.</p>
         </div>
       ) : (
-        <div className="border border-border rounded-2xl overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">N°</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Cliente</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Entrega</th>
-                <th className="text-center px-4 py-3 font-medium text-muted-foreground">Ítems</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground">Total</th>
-                <th className="text-center px-4 py-3 font-medium text-muted-foreground">Pago</th>
-                <th className="text-center px-4 py-3 font-medium text-muted-foreground">Estado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filtered.map((order) => (
-                <tr
-                  key={order.id}
-                  className="hover:bg-muted/20 transition-colors cursor-pointer"
-                  onClick={() => router.push(`/admin/pedidos/${order.id}`)}
-                >
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{order.order_number}</td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{order.customer?.name ?? "—"}</div>
-                    {order.customer?.phone && (
-                      <div className="text-xs text-muted-foreground">{order.customer.phone}</div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatDate(order.delivery_date)}</td>
-                  <td className="px-4 py-3 text-center text-muted-foreground">{order.item_count}</td>
-                  <td className="px-4 py-3 text-right font-mono font-semibold">
-                    {order.total != null ? ARS.format(order.total) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-center">
+        <>
+          {/* Mobile cards */}
+          <div className="md:hidden border border-border rounded-2xl overflow-hidden divide-y divide-border">
+            {filtered.map((order) => (
+              <div
+                key={order.id}
+                className="px-4 py-3 hover:bg-muted/20 cursor-pointer active:bg-muted/30"
+                onClick={() => router.push(`/admin/pedidos/${order.id}`)}
+              >
+                <div className="flex items-start justify-between gap-2 mb-1.5">
+                  <div>
+                    <span className="font-medium text-sm">{order.customer?.name ?? "—"}</span>
+                    <span className="ml-2 text-xs text-muted-foreground font-mono">{order.order_number}</span>
+                  </div>
+                  <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium shrink-0", STATUS_COLORS[order.status])}>
+                    {STATUS_LABELS[order.status]}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">
+                    {order.delivery_date ? `Entrega: ${formatDate(order.delivery_date)}` : "Sin fecha"}
+                  </span>
+                  <div className="flex items-center gap-2">
                     <span className={cn(
-                      "text-xs px-2 py-0.5 rounded-full",
+                      "text-xs px-1.5 py-0.5 rounded-full",
                       order.payment_status === "paid" && "bg-green-100 text-green-700",
                       order.payment_status === "partial" && "bg-amber-100 text-amber-700",
                       order.payment_status === "pending" && "bg-muted text-muted-foreground",
                     )}>
                       {PAYMENT_LABELS[order.payment_status]}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", STATUS_COLORS[order.status])}>
-                      {STATUS_LABELS[order.status]}
+                    <span className="font-mono font-semibold text-sm">
+                      {order.total != null ? ARS.format(order.total) : "—"}
                     </span>
-                  </td>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block border border-border rounded-2xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">N°</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Cliente</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Entrega</th>
+                  <th className="text-center px-4 py-3 font-medium text-muted-foreground">Ítems</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">Total</th>
+                  <th className="text-center px-4 py-3 font-medium text-muted-foreground">Pago</th>
+                  <th className="text-center px-4 py-3 font-medium text-muted-foreground">Estado</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filtered.map((order) => (
+                  <tr
+                    key={order.id}
+                    className="hover:bg-muted/20 transition-colors cursor-pointer"
+                    onClick={() => router.push(`/admin/pedidos/${order.id}`)}
+                  >
+                    <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{order.order_number}</td>
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{order.customer?.name ?? "—"}</div>
+                      {order.customer?.phone && (
+                        <div className="text-xs text-muted-foreground">{order.customer.phone}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{formatDate(order.delivery_date)}</td>
+                    <td className="px-4 py-3 text-center text-muted-foreground">{order.item_count}</td>
+                    <td className="px-4 py-3 text-right font-mono font-semibold">
+                      {order.total != null ? ARS.format(order.total) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={cn(
+                        "text-xs px-2 py-0.5 rounded-full",
+                        order.payment_status === "paid" && "bg-green-100 text-green-700",
+                        order.payment_status === "partial" && "bg-amber-100 text-amber-700",
+                        order.payment_status === "pending" && "bg-muted text-muted-foreground",
+                      )}>
+                        {PAYMENT_LABELS[order.payment_status]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", STATUS_COLORS[order.status])}>
+                        {STATUS_LABELS[order.status]}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
