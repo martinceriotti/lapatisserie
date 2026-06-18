@@ -95,7 +95,7 @@ export async function getCustomers(): Promise<Customer[]> {
 export async function getProductsForOrder(): Promise<ProductForOrder[]> {
   const supabase = createAdminClient();
 
-  const [{ data: products }, { data: recipes }] = await Promise.all([
+  const [{ data: products }, { data: recipes }, { data: costs }, { data: settings }] = await Promise.all([
     supabase
       .from("raw_materials")
       .select("id, name, sale_price")
@@ -107,7 +107,18 @@ export async function getProductsForOrder(): Promise<ProductForOrder[]> {
       .select("id, name")
       .eq("is_active", true)
       .order("name"),
+    supabase
+      .from("recipe_costs")
+      .select("recipe_id, cost_per_unit"),
+    supabase
+      .from("app_settings")
+      .select("sale_price_factor")
+      .limit(1)
+      .maybeSingle(),
   ]);
+
+  const salePriceFactor = settings?.sale_price_factor ?? 3;
+  const costByRecipe = new Map((costs ?? []).map((c) => [c.recipe_id, c.cost_per_unit]));
 
   const productItems: ProductForOrder[] = (products ?? []).map((p) => ({
     id: p.id,
@@ -116,12 +127,18 @@ export async function getProductsForOrder(): Promise<ProductForOrder[]> {
     type: "product" as const,
   }));
 
-  const recipeItems: ProductForOrder[] = (recipes ?? []).map((r) => ({
-    id: r.id,
-    name: r.name,
-    sale_price: null,
-    type: "recipe" as const,
-  }));
+  const recipeItems: ProductForOrder[] = (recipes ?? []).map((r) => {
+    const costPerUnit = costByRecipe.get(r.id);
+    const suggestedPrice = costPerUnit != null
+      ? Math.round(costPerUnit * salePriceFactor)
+      : null;
+    return {
+      id: r.id,
+      name: r.name,
+      sale_price: suggestedPrice,
+      type: "recipe" as const,
+    };
+  });
 
   return [...productItems, ...recipeItems];
 }
