@@ -16,6 +16,7 @@ import {
   ChefHat,
   Boxes,
   X,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },
   { href: "/admin/produccion", label: "Producción", icon: ChefHat },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings },
+  { href: "/admin/ayuda", label: "Ayuda", icon: HelpCircle },
 ];
 
 export function Sidebar({ onClose }: { onClose?: () => void }) {
