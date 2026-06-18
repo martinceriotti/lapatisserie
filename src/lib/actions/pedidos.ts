@@ -25,6 +25,7 @@ export type ProductForOrder = {
   id: string;
   name: string;
   sale_price: number | null;
+  type: "product" | "recipe";
 };
 
 export type OrderItem = {
@@ -93,14 +94,36 @@ export async function getCustomers(): Promise<Customer[]> {
 
 export async function getProductsForOrder(): Promise<ProductForOrder[]> {
   const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("raw_materials")
-    .select("id, name, sale_price")
-    .eq("material_type", "producto_terminado")
-    .eq("is_active", true)
-    .order("name");
-  if (error) throw error;
-  return data ?? [];
+
+  const [{ data: products }, { data: recipes }] = await Promise.all([
+    supabase
+      .from("raw_materials")
+      .select("id, name, sale_price")
+      .eq("material_type", "producto_terminado")
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .from("recipes")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name"),
+  ]);
+
+  const productItems: ProductForOrder[] = (products ?? []).map((p) => ({
+    id: p.id,
+    name: p.name,
+    sale_price: p.sale_price,
+    type: "product" as const,
+  }));
+
+  const recipeItems: ProductForOrder[] = (recipes ?? []).map((r) => ({
+    id: r.id,
+    name: r.name,
+    sale_price: null,
+    type: "recipe" as const,
+  }));
+
+  return [...productItems, ...recipeItems];
 }
 
 export async function getOrders(): Promise<OrderSummary[]> {
@@ -327,7 +350,7 @@ export async function updateDiscount(id: string, discount: number): Promise<Acti
 
 export async function addOrderItem(
   orderId: string,
-  rawMaterialId: string,
+  rawMaterialId: string | null,
   description: string,
   quantity: number,
   unitPrice: number,

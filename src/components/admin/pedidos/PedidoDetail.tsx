@@ -25,7 +25,10 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -83,6 +86,8 @@ function AddItemForm({
   const [error, setError] = useState<string | null>(null);
 
   const selectedProduct = products.find((p) => p.id === productId);
+  const productItems = products.filter((p) => p.type === "product");
+  const recipeItems = products.filter((p) => p.type === "recipe");
 
   function handleProductChange(id: string | null) {
     setProductId(id ?? "");
@@ -93,9 +98,17 @@ function AddItemForm({
   function handleAdd() {
     if (!productId || quantity <= 0) return;
     setError(null);
+    const isRecipe = selectedProduct?.type === "recipe";
     const desc = selectedProduct?.name ?? "";
     startTransition(async () => {
-      const result = await addOrderItem(orderId, productId, desc, quantity, unitPrice, customization);
+      const result = await addOrderItem(
+        orderId,
+        isRecipe ? null : productId,
+        desc,
+        quantity,
+        unitPrice,
+        customization
+      );
       if ("error" in result) {
         setError(typeof result.error === "string" ? result.error : "Error al agregar ítem");
         return;
@@ -103,13 +116,13 @@ function AddItemForm({
       onAdded({
         id: crypto.randomUUID(),
         order_id: orderId,
-        raw_material_id: productId,
+        raw_material_id: isRecipe ? null : productId,
         description: desc,
         quantity,
         unit_price: unitPrice,
         customization: customization || null,
         notes: null,
-        raw_material: selectedProduct ? { id: selectedProduct.id, name: selectedProduct.name } : null,
+        raw_material: isRecipe ? null : (selectedProduct ? { id: selectedProduct.id, name: selectedProduct.name } : null),
       });
       setProductId("");
       setQuantity(1);
@@ -123,17 +136,31 @@ function AddItemForm({
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Agregar ítem</p>
 
       <div className="space-y-1">
-        <Label className="text-xs">Producto</Label>
+        <Label className="text-xs">Producto / Receta</Label>
         <Select value={productId} onValueChange={handleProductChange}>
           <SelectTrigger className="w-full">
             <SelectValue>
-              {(v: string | null) => v ? (products.find((p) => p.id === v)?.name ?? "—") : "Seleccionar producto..."}
+              {(v: string | null) => v ? (products.find((p) => p.id === v)?.name ?? "—") : "Seleccionar..."}
             </SelectValue>
           </SelectTrigger>
           <SelectContent className="w-[var(--radix-select-trigger-width)]">
-            {products.map((p) => (
-              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-            ))}
+            {productItems.length > 0 && (
+              <SelectGroup>
+                <SelectLabel>Productos terminados</SelectLabel>
+                {productItems.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectGroup>
+            )}
+            {productItems.length > 0 && recipeItems.length > 0 && <SelectSeparator />}
+            {recipeItems.length > 0 && (
+              <SelectGroup>
+                <SelectLabel>Recetas</SelectLabel>
+                {recipeItems.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                ))}
+              </SelectGroup>
+            )}
           </SelectContent>
         </Select>
       </div>
