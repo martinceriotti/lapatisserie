@@ -104,6 +104,7 @@ function AddItemForm({
       const result = await addOrderItem(
         orderId,
         isRecipe ? null : productId,
+        isRecipe ? productId : null,
         desc,
         quantity,
         unitPrice,
@@ -117,6 +118,7 @@ function AddItemForm({
         id: crypto.randomUUID(),
         order_id: orderId,
         raw_material_id: isRecipe ? null : productId,
+        recipe_id: isRecipe ? productId : null,
         description: desc,
         quantity,
         unit_price: unitPrice,

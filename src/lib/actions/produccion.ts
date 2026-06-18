@@ -31,14 +31,15 @@ const ACTIVE_STATUSES = ["presupuestado", "confirmado", "en_produccion", "listo"
 export async function getProductionPlan(from: string, to: string): Promise<ProductionPlan> {
   const supabase = createAdminClient();
 
-  // 1. Orders with items in the date range
+  // 1. Orders with items — fetch both raw_material and direct recipe_id
   const { data: ordersData, error: ordersError } = await supabase
     .from("orders")
     .select(`
       id, order_number, delivery_date,
       customer:customers(name),
       items:order_items(
-        quantity,
+        quantity, description,
+        recipe_id,
         raw_material:raw_materials(id, name, recipe_id)
       )
     `)
@@ -50,11 +51,16 @@ export async function getProductionPlan(from: string, to: string): Promise<Produ
   if (ordersError) throw ordersError;
   const orders = ordersData ?? [];
 
-  // 2. Collect unique recipe IDs from raw_materials linked to order items
+  // 2. Collect all recipe IDs from both paths
   const recipeIds = [
     ...new Set(
       orders
-        .flatMap((o) => (o.items as any[]).map((i) => i.raw_material?.recipe_id))
+        .flatMap((o) =>
+          (o.items as any[]).flatMap((i) => [
+            i.recipe_id as string | null,           // direct recipe on item
+            i.raw_material?.recipe_id as string | null,  // via linked raw_material
+          ])
+        )
         .filter(Boolean) as string[]
     ),
   ];
@@ -83,20 +89,38 @@ export async function getProductionPlan(from: string, to: string): Promise<Produ
     }
   }
 
-  // 4. Aggregate products
+  // 4. Aggregate products — handles both paths
   const productMap = new Map<string, ProductionProduct>();
   for (const order of orders) {
     const customerName = (order.customer as any)?.name ?? "—";
     for (const item of (order.items as any[])) {
       const rm = item.raw_material;
-      if (!rm) continue;
-      const key = rm.id;
+      const directRecipeId = item.recipe_id as string | null;
+
+      let key: string;
+      let productName: string;
+      let resolvedRecipeId: string | null;
+
+      if (rm) {
+        // Item linked to a raw_material (producto_terminado with optional recipe)
+        key = `product:${rm.id}`;
+        productName = rm.name;
+        resolvedRecipeId = rm.recipe_id ?? null;
+      } else if (directRecipeId) {
+        // Item linked directly to a recipe
+        key = `recipe:${directRecipeId}`;
+        productName = recipesMap.get(directRecipeId)?.name ?? item.description ?? "—";
+        resolvedRecipeId = directRecipeId;
+      } else {
+        continue; // free-text item with no product/recipe, skip
+      }
+
       if (!productMap.has(key)) {
         productMap.set(key, {
-          product_id: rm.id,
-          product_name: rm.name,
-          recipe_id: rm.recipe_id ?? null,
-          recipe_name: rm.recipe_id ? (recipesMap.get(rm.recipe_id)?.name ?? null) : null,
+          product_id: rm?.id ?? directRecipeId ?? key,
+          product_name: productName,
+          recipe_id: resolvedRecipeId,
+          recipe_name: resolvedRecipeId ? (recipesMap.get(resolvedRecipeId)?.name ?? null) : null,
           total_quantity: 0,
           unit: "unidad(es)",
           orders: [],
@@ -114,7 +138,7 @@ export async function getProductionPlan(from: string, to: string): Promise<Produ
     }
   }
 
-  // 5. Aggregate ingredients
+  // 5. Aggregate ingredients across all products that have a recipe
   const ingredientMap = new Map<string, ProductionIngredient>();
   for (const [, prod] of productMap) {
     if (!prod.recipe_id) continue;
@@ -125,16 +149,16 @@ export async function getProductionPlan(from: string, to: string): Promise<Produ
     const scaleFactor = prod.total_quantity / yieldQty;
 
     for (const ing of recipe.ingredients) {
-      const rm = ing.raw_material;
-      if (!rm) continue;
+      const ingRm = ing.raw_material;
+      if (!ingRm) continue;
       const needed = Number(ing.quantity) * scaleFactor;
-      if (ingredientMap.has(rm.id)) {
-        ingredientMap.get(rm.id)!.total_quantity += needed;
+      if (ingredientMap.has(ingRm.id)) {
+        ingredientMap.get(ingRm.id)!.total_quantity += needed;
       } else {
-        ingredientMap.set(rm.id, {
-          raw_material_id: rm.id,
-          raw_material_name: rm.name,
-          unit: ing.unit ?? rm.unit,
+        ingredientMap.set(ingRm.id, {
+          raw_material_id: ingRm.id,
+          raw_material_name: ingRm.name,
+          unit: ing.unit ?? ingRm.unit,
           total_quantity: needed,
           stock_quantity: 0,
         });
@@ -142,7 +166,7 @@ export async function getProductionPlan(from: string, to: string): Promise<Produ
     }
   }
 
-  // 6. Fetch stock levels
+  // 6. Fetch current stock for each ingredient
   const ingredientIds = Array.from(ingredientMap.keys());
   if (ingredientIds.length > 0) {
     const { data: stockData } = await supabase

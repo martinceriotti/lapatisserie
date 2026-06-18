@@ -32,6 +32,7 @@ export type OrderItem = {
   id: string;
   order_id: string;
   raw_material_id: string | null;
+  recipe_id: string | null;
   description: string;
   quantity: number;
   unit_price: number;
@@ -173,7 +174,7 @@ export async function getOrder(id: string): Promise<OrderWithItems> {
       payment_status, notes, created_at, updated_at,
       customer:customers(id, name, phone, email, address, neighborhood, notes, created_at),
       items:order_items(
-        id, order_id, raw_material_id, description, quantity, unit_price,
+        id, order_id, raw_material_id, recipe_id, description, quantity, unit_price,
         customization, notes,
         raw_material:raw_materials(id, name)
       )
@@ -368,6 +369,7 @@ export async function updateDiscount(id: string, discount: number): Promise<Acti
 export async function addOrderItem(
   orderId: string,
   rawMaterialId: string | null,
+  recipeId: string | null,
   description: string,
   quantity: number,
   unitPrice: number,
@@ -377,6 +379,7 @@ export async function addOrderItem(
   const { error } = await supabase.from("order_items").insert([{
     order_id: orderId,
     raw_material_id: rawMaterialId,
+    recipe_id: recipeId,
     description,
     quantity,
     unit_price: unitPrice,
