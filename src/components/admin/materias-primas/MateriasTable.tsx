@@ -487,6 +487,7 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
   const [openForm, setOpenForm] = useState(false);
   const [editing, setEditing] = useState<MateriaPrima | null>(null);
   const [deleting, setDeleting] = useState<MateriaPrima | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<FormErrors | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [applyingPrice, setApplyingPrice] = useState<string | null>(null);
@@ -548,8 +549,13 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
 
   const handleDelete = useCallback(() => {
     if (!deleting) return;
+    setDeleteError(null);
     startTransition(async () => {
-      await deleteMateriaPrima(deleting.id);
+      const result = await deleteMateriaPrima(deleting.id);
+      if ("error" in result) {
+        setDeleteError(typeof result.error === "string" ? result.error : "Error al eliminar.");
+        return;
+      }
       setDeleting(null);
       router.refresh();
     });
@@ -904,26 +910,31 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
       </Dialog>
 
       {/* Delete confirmation */}
-      <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
+      <AlertDialog open={!!deleting} onOpenChange={(o) => { if (!o) { setDeleting(null); setDeleteError(null); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar insumo?</AlertDialogTitle>
             <AlertDialogDescription>
-              Vas a eliminar <strong>{deleting?.name}</strong>. Esta acción no
-              se puede deshacer. Si el insumo está en uso en alguna receta, no
-              podrá eliminarse.
+              Vas a eliminar <strong>{deleting?.name}</strong>. Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteError && (
+            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2.5">
+              {deleteError}
+            </p>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              disabled={isPending}
-            >
-              {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Eliminar
-            </AlertDialogAction>
+            {!deleteError && (
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={isPending}
+              >
+                {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Eliminar
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

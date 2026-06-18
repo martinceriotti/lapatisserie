@@ -72,6 +72,22 @@ export async function updateMateriaPrima(
 
 export async function deleteMateriaPrima(id: string): Promise<ActionResult> {
   const supabase = createAdminClient();
+
+  const { data: usages } = await supabase
+    .from("recipe_ingredients")
+    .select("recipe:recipes(name)")
+    .eq("raw_material_id", id);
+
+  if (usages && usages.length > 0) {
+    const names = usages
+      .map((u: any) => u.recipe?.name)
+      .filter(Boolean)
+      .join(", ");
+    return {
+      error: `No se puede eliminar: está en uso en ${usages.length} ${usages.length === 1 ? "receta" : "recetas"}${names ? ": " + names : ""}.`,
+    };
+  }
+
   const { error } = await supabase.from("raw_materials").delete().eq("id", id);
   if (error) return { error: error.message };
 
