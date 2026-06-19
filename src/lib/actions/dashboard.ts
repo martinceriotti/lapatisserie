@@ -14,61 +14,59 @@ export type DashboardOrder = {
 };
 
 export type DashboardData = {
-  // KPIs — scoped to current month's deliveries
   por_cobrar: number;
   cobrado: number;
   pedidos_activos: number;
-  // Status breakdown for current month
   por_status: Record<string, number>;
-  // Upcoming deliveries this month (delivery_date >= today)
-  proximas_entregas: DashboardOrder[];
-  // Overdue: delivery_date < today, not fully paid, not cancelled
+  entregas: DashboardOrder[];
+  // Only populated for current month
   vencidas_sin_cobrar: DashboardOrder[];
 };
 
 const ACTIVE_STATUSES = ["borrador", "presupuestado", "confirmado", "en_produccion", "listo"];
 
-export async function getDashboardData(): Promise<DashboardData> {
+export async function getDashboardData(year: number, month: number): Promise<DashboardData> {
   const supabase = createAdminClient();
 
   const now = new Date();
   const today = now.toISOString().split("T")[0];
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    .toISOString()
-    .split("T")[0];
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    .toISOString()
-    .split("T")[0];
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1;
 
-  const [{ data: monthOrders }, { data: overdueOrders }] = await Promise.all([
-    // Orders with delivery date this month
-    supabase
-      .from("orders")
-      .select(
-        "id, order_number, status, payment_status, total, deposit_amount, delivery_date, customer:customers(name)"
-      )
-      .neq("status", "cancelado")
-      .gte("delivery_date", monthStart)
-      .lte("delivery_date", monthEnd)
-      .order("delivery_date", { ascending: true }),
+  const monthStart = new Date(year, month - 1, 1).toISOString().split("T")[0];
+  const monthEnd = new Date(year, month, 0).toISOString().split("T")[0];
 
-    // Past-due orders: delivery already happened, not fully paid
-    supabase
-      .from("orders")
-      .select(
-        "id, order_number, status, payment_status, total, deposit_amount, delivery_date, customer:customers(name)"
-      )
-      .neq("status", "cancelado")
-      .neq("payment_status", "paid")
-      .not("delivery_date", "is", null)
-      .lt("delivery_date", today)
-      .order("delivery_date", { ascending: true }),
+  const monthQuery = supabase
+    .from("orders")
+    .select(
+      "id, order_number, status, payment_status, total, deposit_amount, delivery_date, customer:customers(name)"
+    )
+    .neq("status", "cancelado")
+    .gte("delivery_date", monthStart)
+    .lte("delivery_date", monthEnd)
+    .order("delivery_date", { ascending: true });
+
+  const overdueQuery = isCurrentMonth
+    ? supabase
+        .from("orders")
+        .select(
+          "id, order_number, status, payment_status, total, deposit_amount, delivery_date, customer:customers(name)"
+        )
+        .neq("status", "cancelado")
+        .neq("payment_status", "paid")
+        .not("delivery_date", "is", null)
+        .lt("delivery_date", today)
+        .order("delivery_date", { ascending: true })
+    : null;
+
+  const [{ data: monthOrders }, overdueResult] = await Promise.all([
+    monthQuery,
+    overdueQuery ?? Promise.resolve({ data: [] }),
   ]);
+  const overdueOrders = overdueResult?.data ?? [];
 
   const monthRows = (monthOrders ?? []) as any[];
-  const overdueRows = (overdueOrders ?? []) as any[];
+  const overdueRows = overdueOrders as any[];
 
-  // KPI aggregation from this month's orders
   let por_cobrar = 0;
   let cobrado = 0;
   const por_status: Record<string, number> = {};
@@ -100,21 +98,22 @@ export async function getDashboardData(): Promise<DashboardData> {
     customer_name: o.customer?.name ?? null,
   });
 
-  const proximas_entregas = monthRows
-    .filter((o) => o.delivery_date && o.delivery_date >= today && ACTIVE_STATUSES.includes(o.status))
-    .slice(0, 6)
-    .map(toOrder);
+  // For current month: only show upcoming (>= today). For past months: show all.
+  const entregas = isCurrentMonth
+    ? monthRows
+        .filter((o) => o.delivery_date && o.delivery_date >= today && ACTIVE_STATUSES.includes(o.status))
+        .slice(0, 8)
+        .map(toOrder)
+    : monthRows.slice(0, 8).map(toOrder);
 
   const pedidos_activos = monthRows.filter((o) => ACTIVE_STATUSES.includes(o.status)).length;
-
-  const vencidas_sin_cobrar = overdueRows.map(toOrder);
 
   return {
     por_cobrar,
     cobrado,
     pedidos_activos,
     por_status,
-    proximas_entregas,
-    vencidas_sin_cobrar,
+    entregas,
+    vencidas_sin_cobrar: overdueRows.map(toOrder),
   };
 }
