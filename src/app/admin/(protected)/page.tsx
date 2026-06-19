@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getDashboardData } from "@/lib/actions/dashboard";
+import { getDashboardData, getDashboardChartData } from "@/lib/actions/dashboard";
+import { DashboardChart } from "@/components/admin/dashboard/DashboardChart";
 import {
   STATUS_LABELS,
   PAYMENT_LABELS,
@@ -244,7 +245,10 @@ export default async function AdminDashboard({
   const next = shiftMonth(year, month, 1);
   const monthLabel = MONTHS_ES[month - 1];
 
-  const data = await getDashboardData(year, month);
+  const [data, chartData] = await Promise.all([
+    getDashboardData(year, month),
+    getDashboardChartData(),
+  ]);
 
   const entregasLabel = isPast
     ? `Entregas — ${monthLabel}`
@@ -294,6 +298,14 @@ export default async function AdminDashboard({
             )}
           </div>
         </div>
+      </div>
+
+      {/* Trend chart — always shows last 12 months regardless of selected month */}
+      <div className="bg-surface border border-border rounded-2xl p-5 mb-6">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
+          Evolución — últimos 12 meses
+        </p>
+        <DashboardChart data={chartData} />
       </div>
 
       {/* Alert: overdue unpaid — only current month */}

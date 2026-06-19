@@ -25,6 +25,62 @@ export type DashboardData = {
 
 const ACTIVE_STATUSES = ["borrador", "presupuestado", "confirmado", "en_produccion", "listo"];
 
+export type ChartPoint = {
+  monthKey: string; // "2025-06"
+  label: string;    // "jun '25"
+  pedidos: number;
+  facturado: number;
+};
+
+export async function getDashboardChartData(): Promise<ChartPoint[]> {
+  const supabase = createAdminClient();
+
+  const now = new Date();
+  // 12 months back from start of current month
+  const from = new Date(now.getFullYear(), now.getMonth() - 11, 1)
+    .toISOString()
+    .split("T")[0];
+  const to = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    .toISOString()
+    .split("T")[0];
+
+  const { data } = await supabase
+    .from("orders")
+    .select("delivery_date, total")
+    .neq("status", "cancelado")
+    .not("delivery_date", "is", null)
+    .gte("delivery_date", from)
+    .lte("delivery_date", to);
+
+  // Build ordered map of the 12 months
+  const map = new Map<string, { pedidos: number; facturado: number }>();
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    map.set(key, { pedidos: 0, facturado: 0 });
+  }
+
+  for (const o of data ?? []) {
+    const key = (o.delivery_date as string).slice(0, 7); // "YYYY-MM"
+    const entry = map.get(key);
+    if (entry) {
+      entry.pedidos += 1;
+      entry.facturado += Number(o.total ?? 0);
+    }
+  }
+
+  const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  return Array.from(map.entries()).map(([key, val]) => {
+    const [y, m] = key.split("-").map(Number);
+    return {
+      monthKey: key,
+      label: `${MONTHS[m - 1]} '${String(y).slice(2)}`,
+      pedidos: val.pedidos,
+      facturado: val.facturado,
+    };
+  });
+}
+
 export async function getDashboardData(year: number, month: number): Promise<DashboardData> {
   const supabase = createAdminClient();
 
