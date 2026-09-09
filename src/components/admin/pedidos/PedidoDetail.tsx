@@ -8,6 +8,7 @@ import {
   updateOrderStatus,
   updatePaymentStatus,
   updateDiscount,
+  updateDeposit,
   updateOrderMeta,
   deleteOrder,
   type OrderWithItems,
@@ -78,7 +79,9 @@ function AddItemForm({
   products: ProductForOrder[];
   onAdded: (item: OrderItem) => void;
 }) {
+  const [mode, setMode] = useState<"catalog" | "free">("catalog");
   const [productId, setProductId] = useState("");
+  const [freeDescription, setFreeDescription] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(0);
   const [customization, setCustomization] = useState("");
@@ -95,16 +98,29 @@ function AddItemForm({
     setUnitPrice(p?.sale_price ?? 0);
   }
 
+  function reset() {
+    setProductId("");
+    setFreeDescription("");
+    setQuantity(1);
+    setUnitPrice(0);
+    setCustomization("");
+  }
+
+  const canAdd =
+    quantity > 0 &&
+    (mode === "catalog" ? !!productId : freeDescription.trim().length > 0);
+
   function handleAdd() {
-    if (!productId || quantity <= 0) return;
+    if (!canAdd) return;
     setError(null);
-    const isRecipe = selectedProduct?.type === "recipe";
-    const desc = selectedProduct?.name ?? "";
+    const isRecipe = mode === "catalog" && selectedProduct?.type === "recipe";
+    const linkedId = mode === "catalog" ? productId : null;
+    const desc = mode === "catalog" ? (selectedProduct?.name ?? "") : freeDescription.trim();
     startTransition(async () => {
       const result = await addOrderItem(
         orderId,
-        isRecipe ? null : productId,
-        isRecipe ? productId : null,
+        isRecipe ? null : linkedId,
+        isRecipe ? linkedId : null,
         desc,
         quantity,
         unitPrice,
@@ -117,55 +133,83 @@ function AddItemForm({
       onAdded({
         id: crypto.randomUUID(),
         order_id: orderId,
-        raw_material_id: isRecipe ? null : productId,
-        recipe_id: isRecipe ? productId : null,
+        raw_material_id: isRecipe ? null : linkedId,
+        recipe_id: isRecipe ? linkedId : null,
         description: desc,
         quantity,
         unit_price: unitPrice,
         customization: customization || null,
         notes: null,
-        raw_material: isRecipe ? null : (selectedProduct ? { id: selectedProduct.id, name: selectedProduct.name } : null),
+        raw_material:
+          !isRecipe && linkedId && selectedProduct
+            ? { id: selectedProduct.id, name: selectedProduct.name }
+            : null,
       });
-      setProductId("");
-      setQuantity(1);
-      setUnitPrice(0);
-      setCustomization("");
+      reset();
     });
   }
 
   return (
     <div className="border-t border-dashed border-border pt-4 space-y-3">
-      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Agregar ítem</p>
-
-      <div className="space-y-1">
-        <Label className="text-xs">Producto / Receta</Label>
-        <Select value={productId} onValueChange={handleProductChange}>
-          <SelectTrigger className="w-full">
-            <SelectValue>
-              {(v: string | null) => v ? (products.find((p) => p.id === v)?.name ?? "—") : "Seleccionar..."}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent className="w-[var(--radix-select-trigger-width)]">
-            {productItems.length > 0 && (
-              <SelectGroup>
-                <SelectLabel>Productos terminados</SelectLabel>
-                {productItems.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                ))}
-              </SelectGroup>
-            )}
-            {productItems.length > 0 && recipeItems.length > 0 && <SelectSeparator />}
-            {recipeItems.length > 0 && (
-              <SelectGroup>
-                <SelectLabel>Recetas</SelectLabel>
-                {recipeItems.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
-                ))}
-              </SelectGroup>
-            )}
-          </SelectContent>
-        </Select>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Agregar ítem</p>
+        <div className="flex rounded-lg border border-border p-0.5 text-xs">
+          {(["catalog", "free"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => { setMode(m); setError(null); }}
+              className={cn(
+                "px-2 py-1 rounded-md transition-colors",
+                mode === m ? "bg-accent text-foreground font-medium" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {m === "catalog" ? "Del catálogo" : "Libre"}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {mode === "catalog" ? (
+        <div className="space-y-1">
+          <Label className="text-xs">Producto / Receta</Label>
+          <Select value={productId} onValueChange={handleProductChange}>
+            <SelectTrigger className="w-full">
+              <SelectValue>
+                {(v: string | null) => v ? (products.find((p) => p.id === v)?.name ?? "—") : "Seleccionar..."}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent className="w-[var(--radix-select-trigger-width)]">
+              {productItems.length > 0 && (
+                <SelectGroup>
+                  <SelectLabel>Productos terminados</SelectLabel>
+                  {productItems.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectGroup>
+              )}
+              {productItems.length > 0 && recipeItems.length > 0 && <SelectSeparator />}
+              {recipeItems.length > 0 && (
+                <SelectGroup>
+                  <SelectLabel>Recetas</SelectLabel>
+                  {recipeItems.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                  ))}
+                </SelectGroup>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+      ) : (
+        <div className="space-y-1">
+          <Label className="text-xs">Descripción</Label>
+          <Input
+            placeholder="Ej: Envío a domicilio, extra de decoración…"
+            value={freeDescription}
+            onChange={(e) => setFreeDescription(e.target.value)}
+          />
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
@@ -207,7 +251,7 @@ function AddItemForm({
         <Button
           type="button"
           onClick={handleAdd}
-          disabled={isPending || !productId || quantity <= 0}
+          disabled={isPending || !canAdd}
           size="sm"
           className="gradient-brand text-white border-0 gap-1.5"
         >
@@ -319,11 +363,20 @@ export function PedidoDetail({
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(initialOrder.payment_status);
   const [subtotal, setSubtotal] = useState(Number(initialOrder.subtotal));
   const [discount, setDiscount] = useState(Number(initialOrder.discount));
+
+  const initTotal = Number(initialOrder.total ?? Number(initialOrder.subtotal) - Number(initialOrder.discount));
+  const initSuggestedDeposit = Math.round((initTotal * depositPct) / 100);
   const [depositAmount, setDepositAmount] = useState<number>(
-    initialOrder.deposit_amount != null
-      ? Number(initialOrder.deposit_amount)
-      : Math.round(Number(initialOrder.total ?? 0) * depositPct / 100)
+    initialOrder.deposit_amount != null ? Number(initialOrder.deposit_amount) : initSuggestedDeposit
   );
+  // Seña "manual" = el monto guardado no coincide con el % sugerido → no se recalcula sola.
+  const [depositManual, setDepositManual] = useState(
+    initialOrder.deposit_amount != null &&
+      Math.abs(Number(initialOrder.deposit_amount) - initSuggestedDeposit) > 1
+  );
+  const [editingDeposit, setEditingDeposit] = useState(false);
+  const [depositInput, setDepositInput] = useState(String(depositAmount));
+
   const [editingDiscount, setEditingDiscount] = useState(false);
   const [discountInput, setDiscountInput] = useState(String(discount));
   const [openEdit, setOpenEdit] = useState(false);
@@ -341,7 +394,9 @@ export function PedidoDetail({
     setItems((prev) => [...prev, item]);
     const newSubtotal = subtotal + item.quantity * item.unit_price;
     setSubtotal(newSubtotal);
-    setDepositAmount(Math.round((newSubtotal - discount) * depositPct / 100));
+    if (!depositManual) {
+      setDepositAmount(Math.round((newSubtotal - discount) * depositPct / 100));
+    }
   }
 
   function handleRemoveItem(itemId: string) {
@@ -350,7 +405,9 @@ export function PedidoDetail({
     setItems((prev) => prev.filter((i) => i.id !== itemId));
     const newSubtotal = subtotal - item.quantity * item.unit_price;
     setSubtotal(newSubtotal);
-    setDepositAmount(Math.round((newSubtotal - discount) * depositPct / 100));
+    if (!depositManual) {
+      setDepositAmount(Math.round((newSubtotal - discount) * depositPct / 100));
+    }
     startTransition(async () => {
       await removeOrderItem(itemId, initialOrder.id);
     });
@@ -402,6 +459,28 @@ export function PedidoDetail({
     startTransition(async () => {
       const result = await updateDiscount(initialOrder.id, val);
       if ("error" in result) { setDiscount(prev); setDiscountInput(String(prev)); }
+    });
+  }
+
+  function handleSaveDeposit() {
+    const val = Math.max(0, parseFloat(depositInput) || 0);
+    const prev = depositAmount;
+    setDepositAmount(val);
+    setDepositManual(true);
+    setEditingDeposit(false);
+    startTransition(async () => {
+      const result = await updateDeposit(initialOrder.id, val);
+      if ("error" in result) { setDepositAmount(prev); setDepositInput(String(prev)); }
+    });
+  }
+
+  function handleResetDeposit() {
+    const prev = depositAmount;
+    setDepositAmount(suggestedDeposit);
+    setDepositManual(false);
+    startTransition(async () => {
+      const result = await updateDeposit(initialOrder.id, suggestedDeposit);
+      if ("error" in result) { setDepositAmount(prev); setDepositManual(true); }
     });
   }
 
@@ -635,9 +714,43 @@ export function PedidoDetail({
             </div>
 
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Seña ({depositPct}%)</span>
-                <span className="font-mono text-xs">{ARS.format(depositAmount)}</span>
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-muted-foreground flex items-center gap-1.5">
+                  {depositManual ? "Seña" : `Seña (${depositPct}%)`}
+                  {depositManual && (
+                    <button
+                      onClick={handleResetDeposit}
+                      disabled={isPending}
+                      className="text-xs text-primary/70 hover:text-primary underline underline-offset-2"
+                    >
+                      usar {depositPct}%
+                    </button>
+                  )}
+                </span>
+                {editingDeposit ? (
+                  <div className="flex items-center gap-1">
+                    <div className="relative w-24">
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={depositInput}
+                        onChange={(e) => setDepositInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleSaveDeposit(); if (e.key === "Escape") setEditingDeposit(false); }}
+                        className="h-6 text-xs pl-5 pr-1"
+                        autoFocus
+                      />
+                    </div>
+                    <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={handleSaveDeposit}>OK</Button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => { setDepositInput(String(depositAmount)); setEditingDeposit(true); }}
+                    className="font-mono text-xs hover:text-primary transition-colors"
+                  >
+                    {ARS.format(depositAmount)}
+                  </button>
+                )}
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Saldo</span>

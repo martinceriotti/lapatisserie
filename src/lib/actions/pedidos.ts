@@ -364,6 +364,18 @@ export async function updateDiscount(id: string, discount: number): Promise<Acti
   return { success: true };
 }
 
+export async function updateDeposit(id: string, depositAmount: number): Promise<ActionResult> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("orders")
+    .update({ deposit_amount: depositAmount, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/admin/pedidos/${id}`);
+  return { success: true };
+}
+
 // ── Item mutations ─────────────────────────────────────────────────────────────
 
 export async function addOrderItem(
