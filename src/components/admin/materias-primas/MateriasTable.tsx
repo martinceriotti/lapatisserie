@@ -339,7 +339,7 @@ function MateriaPrimaForm({
   );
 }
 
-function ExpandedRow({ m, onApplyPrice }: {
+function ExpandedContent({ m, onApplyPrice }: {
   m: MateriaPrima;
   onApplyPrice: (supplierId: string, price: number, supplierName: string) => void;
 }) {
@@ -358,9 +358,7 @@ function ExpandedRow({ m, onApplyPrice }: {
     );
 
   return (
-    <TableRow className="bg-muted/20 hover:bg-muted/20">
-      <TableCell colSpan={8} className="py-0">
-        <div className="px-4 py-4 space-y-4">
+    <div className="px-4 py-4 space-y-4">
           {/* Supplier offers */}
           {hasOffers && (
             <div>
@@ -471,7 +469,19 @@ function ExpandedRow({ m, onApplyPrice }: {
               </div>
             </div>
           )}
-        </div>
+    </div>
+  );
+}
+
+function ExpandedRow(props: {
+  m: MateriaPrima;
+  onApplyPrice: (supplierId: string, price: number, supplierName: string) => void;
+}) {
+  if (!props.m.supplier_offers?.length && !props.m.price_history?.length) return null;
+  return (
+    <TableRow className="bg-muted/20 hover:bg-muted/20">
+      <TableCell colSpan={8} className="py-0">
+        <ExpandedContent {...props} />
       </TableCell>
     </TableRow>
   );
@@ -598,8 +608,8 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
   return (
     <>
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        <div className="relative flex-1">
+      <div className="grid grid-cols-2 gap-3 mb-5 sm:flex sm:flex-row sm:items-center">
+        <div className="relative col-span-2 sm:flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Buscar insumo…"
@@ -609,7 +619,7 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
           />
         </div>
         <Select value={typeFilter} onValueChange={(v) => { if (v) setTypeFilter(v); }}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="min-w-0 sm:w-44">
             <SelectValue placeholder="Todos los tipos">
               {(v: string | null) =>
                 !v || v === "all"
@@ -628,7 +638,7 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
           </SelectContent>
         </Select>
         <Select value={categoryFilter} onValueChange={(v) => { if (v) setCategoryFilter(v); }}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="min-w-0 sm:w-48">
             <SelectValue placeholder="Todas las categorías">
               {(v: string | null) =>
                 !v || v === "all"
@@ -652,15 +662,103 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
             setFormErrors(null);
             setOpenForm(true);
           }}
-          className="gradient-brand text-white border-0 hover:opacity-90 shrink-0"
+          className="col-span-2 gradient-brand text-white border-0 hover:opacity-90 sm:w-auto sm:shrink-0"
         >
           <Plus className="w-4 h-4 mr-2" />
           Nueva materia prima
         </Button>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
+      {filtered.length === 0 ? (
+        <div className="border border-border rounded-2xl p-12 text-center text-muted-foreground text-sm bg-surface">
+          {search || categoryFilter !== "all" || typeFilter !== "all"
+            ? "No se encontraron resultados."
+            : "Todavía no hay materias primas. Agregá la primera."}
+        </div>
+      ) : (
+      <>
+      {/* Lista — mobile */}
+      <div className="md:hidden border border-border rounded-2xl overflow-hidden divide-y divide-border bg-surface">
+        {filtered.map((m) => {
+          const lastSupplier = m.price_history
+            ?.filter((h) => h.supplier)
+            .sort((a, b) => new Date(b.effective_date).getTime() - new Date(a.effective_date).getTime())[0]
+            ?.supplier;
+          const busy = applyingPrice === m.id || syncing === m.id;
+          return (
+            <div key={m.id} className={cn("px-4 py-3", !m.is_active && "opacity-50", busy && "opacity-60 pointer-events-none")}>
+              <div className="flex items-start justify-between gap-2">
+                <span className="font-medium text-sm flex-1 min-w-0">{m.name}</span>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <Badge variant="outline" className="text-xs">{CATEGORY_LABELS[m.category]}</Badge>
+                  {m.material_type !== "materia_prima" && (
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-xs",
+                        m.material_type === "intermedio"
+                          ? "border-amber-300 text-amber-700 bg-amber-50"
+                          : "border-violet-300 text-violet-700 bg-violet-50"
+                      )}
+                    >
+                      {MATERIAL_TYPE_LABELS[m.material_type]}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="font-mono font-semibold text-sm">
+                    {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin inline" /> : formatPrice(m.current_price)}
+                    <span className="text-muted-foreground font-normal"> / {m.unit}</span>
+                  </span>
+                  {m.material_type === "producto_terminado" && m.sale_price != null && (
+                    <p className="text-xs text-muted-foreground">Venta: {formatPrice(m.sale_price)}</p>
+                  )}
+                  {lastSupplier && (
+                    <p className="text-xs text-muted-foreground truncate">{lastSupplier.name}</p>
+                  )}
+                </div>
+                <div className="flex items-center gap-0.5 shrink-0 text-muted-foreground">
+                  {m.recipe_id && m.material_type !== "materia_prima" && (
+                    <button className="p-1.5 hover:text-primary" onClick={() => handleSync(m.id)} disabled={syncing === m.id} title="Sincronizar precio desde receta">
+                      <RefreshCw className={cn("w-3.5 h-3.5", syncing === m.id && "animate-spin")} />
+                    </button>
+                  )}
+                  <button className="p-1.5 hover:text-foreground" onClick={() => { setEditing(m); setFormErrors(null); }} title="Editar">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button className="p-1.5 hover:text-destructive" onClick={() => setDeleting(m)} title="Eliminar">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                  {hasExpandableContent(m) && (
+                    <button
+                      className="p-1.5 hover:text-foreground"
+                      onClick={() => setExpandedId(expandedId === m.id ? null : m.id)}
+                      title="Ver precios y historial"
+                    >
+                      <ChevronDown className={cn("w-4 h-4 transition-transform", expandedId === m.id && "rotate-180")} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {expandedId === m.id && hasExpandableContent(m) && (
+                <div className="-mx-4 mt-2 border-t border-border bg-muted/20">
+                  <ExpandedContent
+                    m={m}
+                    onApplyPrice={(supplierId, price, supplierName) => handleApplyPrice(m.id, supplierId, price, supplierName)}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Tabla — desktop */}
+      <div className="hidden md:block overflow-x-auto rounded-2xl border border-border bg-surface">
       <div className="min-w-[700px]">
         <Table>
           <TableHeader>
@@ -676,15 +774,6 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
-                  {search || categoryFilter !== "all"
-                    ? "No se encontraron resultados."
-                    : "Todavía no hay materias primas. Agregá la primera."}
-                </TableCell>
-              </TableRow>
-            )}
             {filtered.map((m) => {
               const lastSupplier = m.price_history
                 ?.filter((h) => h.supplier)
@@ -829,6 +918,8 @@ export function MateriasTable({ initialData, recipes }: { initialData: MateriaPr
         </Table>
       </div>
       </div>
+      </>
+      )}
 
       <p className="text-xs text-muted-foreground mt-3">
         {filtered.length} de {data.length} insumos
