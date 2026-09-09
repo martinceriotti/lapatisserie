@@ -1,72 +1,99 @@
 import type { ParsedItem, ParseResult } from "./types";
 import { parseArgentine, round2 } from "./utils";
 
-// DROVANDI format:
-// CODIGO | DESCRIPCION | STOCK | MARCA | U/CAJA | PRECIO
-// Example: "0003290 ACEITE OLIVA X 5LT 15 COCINERO 4 162.593,60"
-// Example: "0003290U ACEITE OLIVA X 5LT 0 COCINERO 1 40.648,40"
-// Codes are 7 digits, optionally with "U" suffix (unidad vs caja)
-// PRECIO includes IVA → compute net = final / (1 + ivaRate)
+// Formato DROVANDI (texto crudo de unpdf: espacios simples, prefijo "**unidad**"):
+//
+//   <CODIGO> <DESCRIPCION...> <STOCK> [MARCA] <U/CAJA> <PRECIO>
+//
+//   0000173 ACEITE DE GIRASOL COSTA DEL SOL CJ4X4.5LTS 72.00 COSTA DEL SOL 4.00 74.817,74
+//   0000173U **unidad**ACEITE DE GIRASOL COSTA DEL SOL X4.5LTS 2.00 COSTA DEL SOL 1.00 18.704,43
+//   MAIN005 MANTECA INTY 8 X 2.5 KG 59.00 INTY 8.00 207.314,55
+//
+// - CODIGO: alfanumérico (mayúsculas + dígitos + . - /), largo variable. No siempre
+//   son 7 dígitos: "0MAIN04", "MAIN005", "AZ44CTA", "00MYR10", "114/500", "60-54-10".
+//   Sufijo "U" = presentación por unidad (vs. caja).
+// - STOCK: número con 2 decimales, puede ser negativo ("-2.00", "88.01", "0.00").
+// - MARCA: texto (a veces vacío, "0" o ","). Se descarta.
+// - U/CAJA: cantidad por caja ("4.00", "12.00", "1.00").
+// - PRECIO: formato argentino, incluye IVA → neto = final / (1 + ivaRate).
+//
+// Se parsea de derecha a izquierda (precio → u/caja → stock) porque la descripción
+// tiene largo variable y puede contener números ("X 1.8", "CJ4X4.5LTS").
+
+const ARG_PRICE_AT_END = /(\d{1,3}(?:\.\d{3})*,\d{2})\s*$/;
+const TRAILING_NUMBER = /^(.*?)\s+(\d+(?:\.\d+)?)$/;
+const TRAILING_STOCK = /^(.*)\s(-?\d+\.\d{2})(?:\s.*)?$/; // greedy → toma el último token n.nn
+const UNIDAD_PREFIX = /^\*+\s*unidad\s*\*+\s*/i;
 
 export function parseDrovandi(text: string, ivaRate: number): ParseResult {
   const items: ParsedItem[] = [];
   const warnings: string[] = [];
 
   for (const rawLine of text.split("\n")) {
-    const line = rawLine.trim();
+    const line = rawLine.trim().replace(/\s+/g, " ");
+    if (!line) continue;
 
-    // Must start with 7-digit code, optionally with U suffix
-    const skuMatch = line.match(/^(\d{7}(U?))\b/);
-    if (!skuMatch) continue;
-
-    const sku = skuMatch[1];
-    const isUnit = skuMatch[2] === "U";
-
-    // Find all Argentine-format prices in the line; last one is the price
-    const allPrices = [...line.matchAll(/\b(\d{1,3}(?:\.\d{3})*,\d{2})\b/g)];
-    if (allPrices.length === 0) continue;
-
-    const priceFinal = parseArgentine(allPrices[allPrices.length - 1][1]);
+    // 1. La línea debe terminar en un precio con formato argentino.
+    const priceMatch = line.match(ARG_PRICE_AT_END);
+    if (!priceMatch) continue;
+    const priceFinal = parseArgentine(priceMatch[1]);
     if (priceFinal <= 0) continue;
 
-    const priceNet = round2(priceFinal / (1 + ivaRate));
+    // head = "<codigo> <desc> <stock> [marca] <u/caja>"
+    const head = line.slice(0, priceMatch.index).trim();
 
-    // Try to extract U/CAJA count (number just before the last price)
-    const ucajaMatch = line.match(/\b(\d+)\s+\d{1,3}(?:\.\d{3})*,\d{2}\s*$/);
-    const ucaja = ucajaMatch ? ucajaMatch[1] : null;
-    const unitDescription = isUnit ? "Unidad" : ucaja && ucaja !== "0" ? `Caja x ${ucaja}` : "Caja";
+    // 2. Primer token = código. Debe tener algún dígito y no minúsculas
+    //    (así se descartan encabezados, categorías y el pie de página).
+    const codeSplit = head.match(/^(\S+)\s+(.*)$/);
+    if (!codeSplit) continue;
+    const sku = codeSplit[1];
+    if (!/\d/.test(sku) || /[a-z]/.test(sku)) continue;
+    let rest = codeSplit[2]; // "<desc> <stock> [marca] <u/caja>"
 
-    // Extract description: after SKU code, before the first standalone number (stock)
-    const rest = line.slice(sku.length).trim();
-    // Description ends at the first sequence of multiple spaces or a standalone number
-    const descMatch = rest.match(/^(.+?)\s{2,}\S|\s+\d+\s+\S/);
-    let productName: string;
-    if (descMatch) {
-      productName = descMatch[1]?.trim() ?? rest.split(/\s{2,}/)[0].trim();
-    } else {
-      // Fallback: take tokens until we hit a short numeric token (stock number)
-      const tokens = rest.split(/\s+/);
-      const nameTokens: string[] = [];
-      for (const t of tokens) {
-        if (/^\d{1,6}$/.test(t) && nameTokens.length > 0) break;
-        if (/^\d{1,3}(?:\.\d{3})*,\d{2}$/.test(t)) break;
-        nameTokens.push(t);
-      }
-      productName = nameTokens.join(" ").trim();
+    // 3. U/CAJA = último token numérico.
+    let ucaja: string | null = null;
+    const ucajaMatch = rest.match(TRAILING_NUMBER);
+    if (ucajaMatch) {
+      rest = ucajaMatch[1];
+      ucaja = ucajaMatch[2];
     }
 
+    // 4. STOCK = último token "-?n.nn"; lo que quede antes es la descripción.
+    let productName = rest;
+    const stockMatch = rest.match(TRAILING_STOCK);
+    if (stockMatch) productName = stockMatch[1];
+
+    // 5. Limpiar prefijo "**unidad**" de las filas por unidad.
+    const isUnit = /U$/.test(sku);
+    productName = productName.replace(UNIDAD_PREFIX, "").trim();
     if (!productName) continue;
 
-    items.push({ supplier_sku: sku, product_name: productName, unit_description: unitDescription, price_net: priceNet, price_final: round2(priceFinal) });
+    const priceNet = round2(priceFinal / (1 + ivaRate));
+    const perBox = ucaja ? parseInt(ucaja, 10) : 0;
+    const unitDescription = isUnit
+      ? "Unidad"
+      : perBox > 1
+        ? `Caja x ${perBox}`
+        : "Caja";
+
+    items.push({
+      supplier_sku: sku,
+      product_name: productName,
+      unit_description: unitDescription,
+      price_net: priceNet,
+      price_final: round2(priceFinal),
+    });
   }
 
-  // Deduplicate: if same SKU appears more than once (e.g. repeated in header/footer), last wins
+  // Deduplicar: si un SKU se repite (encabezado/pie), gana el último.
   const seen = new Map<string, ParsedItem>();
   for (const item of items) seen.set(item.supplier_sku, item);
   const deduped = [...seen.values()];
 
   if (deduped.length === 0) {
-    warnings.push("No se encontraron filas con el formato Drovandi. Revisá el PDF en el texto crudo.");
+    warnings.push(
+      "No se encontraron filas con el formato Drovandi. Revisá el PDF en el texto crudo."
+    );
   }
 
   return { items: deduped, rawText: text, warnings };
