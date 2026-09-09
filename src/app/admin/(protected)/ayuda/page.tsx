@@ -7,6 +7,7 @@ const SECTIONS = [
   { id: "vincular-precio", label: "Vincular precio a materia prima" },
   { id: "recetas", label: "Recetas" },
   { id: "pedidos", label: "Pedidos" },
+  { id: "clientes", label: "Clientes" },
   { id: "presupuesto", label: "Compartir presupuesto" },
   { id: "stock", label: "Stock" },
   { id: "produccion", label: "Producción" },
@@ -185,6 +186,21 @@ export default function AyudaPage() {
             <Tip>
               Podés ver los pedidos en vista <strong>Lista</strong> (tabla con estado y totales) o vista <strong>Calendario</strong> (por fecha de entrega). Usá el calendario para planificar la semana.
             </Tip>
+          </Section>
+
+          {/* ── CLIENTES ── */}
+          <Section id="clientes" title="Clientes">
+            <p className="text-sm text-muted-foreground mb-4">
+              Los clientes se crean solos cuando cargás un pedido. En <strong>Clientes</strong> los ves todos con su historial.
+            </p>
+            <Step n={1}>Ir a <strong>Clientes</strong> en el menú lateral.</Step>
+            <Step n={2}>La lista muestra teléfono, barrio, cantidad de pedidos, fecha del último y <strong>total comprado</strong> (histórico, sin contar pedidos cancelados).</Step>
+            <Step n={3}>Tocar un cliente despliega sus <strong>pedidos</strong>: número, fecha, estado y total, con link a cada uno.</Step>
+            <Step n={4}>Con los íconos de cada fila podés <strong>editar</strong> los datos o <strong>eliminar</strong> el cliente.</Step>
+            <Step n={5}>Podés dar de alta un cliente desde acá con <strong>Nuevo cliente</strong>, sin necesidad de crear un pedido.</Step>
+            <Note>
+              Un cliente que ya tiene pedidos <strong>no se puede eliminar</strong> — se perderían los datos de esos pedidos. Editá sus datos en vez de borrarlo.
+            </Note>
           </Section>
 
           {/* ── COMPARTIR PRESUPUESTO ── */}

@@ -15,6 +15,7 @@ import {
   Settings,
   ChefHat,
   Boxes,
+  Users,
   X,
   HelpCircle,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/admin/proveedores", label: "Proveedores", icon: Truck },
   { href: "/admin/recetas", label: "Recetas", icon: BookOpen },
   { href: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },
+  { href: "/admin/clientes", label: "Clientes", icon: Users },
   { href: "/admin/produccion", label: "Producción", icon: ChefHat },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings },
   { href: "/admin/ayuda", label: "Ayuda", icon: HelpCircle },
