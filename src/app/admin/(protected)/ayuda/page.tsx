@@ -7,8 +7,10 @@ const SECTIONS = [
   { id: "vincular-precio", label: "Vincular precio a materia prima" },
   { id: "recetas", label: "Recetas" },
   { id: "pedidos", label: "Pedidos" },
+  { id: "presupuesto", label: "Compartir presupuesto" },
   { id: "stock", label: "Stock" },
   { id: "produccion", label: "Producción" },
+  { id: "instalar-app", label: "Instalar la app" },
 ];
 
 function Step({ n, children }: { n: number; children: React.ReactNode }) {
@@ -168,18 +170,40 @@ export default function AyudaPage() {
             <Step n={1}>Ir a <strong>Pedidos</strong> → hacer clic en <strong>Nuevo pedido</strong>.</Step>
             <Step n={2}>Seleccionar o crear el <strong>cliente</strong>. Completar fecha de evento y fecha de entrega.</Step>
             <Step n={3}>
-              En la sección <strong>Ítems del pedido</strong>, seleccionar una <strong>Receta</strong> o <strong>Producto terminado</strong> del selector:
-              <br />• <em>Recetas</em>: el precio sugerido se completa automáticamente (editalo si cobrás diferente).
-              <br />• <em>Productos terminados</em>: trae el precio de venta configurado en Materias Primas.
+              En <strong>Ítems del pedido</strong>, elegí el modo con el botón <strong>Del catálogo / Libre</strong>:
+              <br />• <em>Del catálogo</em>: seleccionás una <strong>Receta</strong> (trae el precio sugerido) o un <strong>Producto terminado</strong> (trae el precio de venta de Materias Primas). El precio queda editable.
+              <br />• <em>Libre</em>: para algo puntual que no está en el maestro (envío, extra de decoración, seña de una clase). Escribís la descripción y el precio a mano.
             </Step>
             <Step n={4}>Agregar la <strong>personalización</strong> si aplica (ej. "Feliz cumpleaños María").</Step>
             <Step n={5}>Avanzar el estado del pedido según la etapa: <em>Borrador → Presupuestado → Confirmado → En producción → Listo → Entregado → Pagado</em>.</Step>
-            <Step n={6}>En la sección <strong>Pago</strong>, registrar cuándo cobraste la seña y el saldo.</Step>
+            <Step n={6}>
+              En la sección <strong>Pago</strong>: la <strong>seña</strong> se calcula como un porcentaje del total (se configura en <strong>Configuración</strong>). Si el cliente paga otro monto, tocá el número de la seña y editalo — el link <em>“usar 50%”</em> vuelve al cálculo automático. Después registrá cuándo cobraste la seña y el saldo.
+            </Step>
             <Note>
               Al marcar un pedido como <strong>Entregado</strong>, el sistema descuenta automáticamente el stock de los productos terminados que tengan materia prima vinculada. Las recetas puras no descuentan stock hasta que implementemos esa funcionalidad.
             </Note>
             <Tip>
               Podés ver los pedidos en vista <strong>Lista</strong> (tabla con estado y totales) o vista <strong>Calendario</strong> (por fecha de entrega). Usá el calendario para planificar la semana.
+            </Tip>
+          </Section>
+
+          {/* ── COMPARTIR PRESUPUESTO ── */}
+          <Section id="presupuesto" title="Compartir presupuesto con el cliente">
+            <p className="text-sm text-muted-foreground mb-4">
+              Desde cualquier pedido podés generar un PDF con el presupuesto y mandárselo al cliente.
+            </p>
+            <Step n={1}>Abrí el pedido y cargá todos los ítems.</Step>
+            <Step n={2}>Tocá <strong>Compartir presupuesto</strong> (arriba, botón bordó).</Step>
+            <Step n={3}>
+              Se arma un PDF con el detalle: ítems, total, seña y saldo, y la validez (7 días).
+              <br />• <em>En el celular</em>: se abre el menú <strong>Compartir</strong> del teléfono — elegí WhatsApp y se lo enviás al cliente.
+              <br />• <em>En la computadora</em>: se descarga el archivo para adjuntarlo donde quieras.
+            </Step>
+            <Note>
+              Si el pedido está en <strong>Borrador</strong>, al compartir el presupuesto pasa automáticamente a <strong>Presupuestado</strong>. Si ya está más adelante, el estado no cambia.
+            </Note>
+            <Tip>
+              Si cambia el Instagram del negocio o algún dato del pie del presupuesto, avisá para actualizarlo.
             </Tip>
           </Section>
 
@@ -209,7 +233,24 @@ export default function AyudaPage() {
               Solo aparecen pedidos en estado <em>Presupuestado, Confirmado, En producción</em> o <em>Listo</em>. Los borradores y pedidos ya entregados/cancelados no se incluyen.
             </Note>
             <Note>
-              Para que la producción pueda calcular ingredientes, cada ítem del pedido debe estar vinculado a una <strong>Receta</strong>. Si el ítem fue cargado como texto libre sin receta asociada, no aparecerá en el desglose de ingredientes.
+              Para que la producción pueda calcular ingredientes, cada ítem del pedido debe estar vinculado a una <strong>Receta</strong>. Los ítems cargados en modo <strong>Libre</strong> (sin receta asociada) no aparecen en el desglose de ingredientes.
+            </Note>
+          </Section>
+
+          {/* ── INSTALAR LA APP ── */}
+          <Section id="instalar-app" title="Instalar la app en el celular">
+            <p className="text-sm text-muted-foreground mb-4">
+              Podés agregar el sistema a la pantalla de inicio del teléfono y abrirlo con un toque, sin escribir la dirección en el navegador. Se ve en pantalla completa, como una app.
+            </p>
+            <Step n={1}>
+              <strong>iPhone:</strong> abrí el sitio en <strong>Safari</strong> → botón <strong>Compartir</strong> (el cuadrado con la flecha) → <strong>Agregar a inicio</strong>.
+            </Step>
+            <Step n={2}>
+              <strong>Android:</strong> abrí el sitio en Chrome → menú <strong>⋮</strong> → <strong>Instalar app</strong> (o “Agregar a pantalla principal”).
+            </Step>
+            <Step n={3}>Queda el ícono del cupcake. Al abrirlo entrás directo al panel.</Step>
+            <Note>
+              En iPhone tiene que ser <strong>Safari</strong> — no funciona desde Chrome ni desde el navegador de Instagram. Necesita conexión a internet.
             </Note>
           </Section>
 
