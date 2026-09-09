@@ -68,6 +68,14 @@ function formatPrice(n: number) {
   }).format(n);
 }
 
+// Forma singular corta para el resumen mobile ("Costo $X / u.")
+const YIELD_UNIT_SHORT: Record<string, string> = {
+  unidades: "u.",
+  porciones: "porción",
+  gramos: "g",
+  kg: "kg",
+};
+
 type FormErrors = Record<string, string[]>;
 
 function RecetaForm({
@@ -271,8 +279,8 @@ export function RecetasList({ initialData, categories, salePriceFactor }: Props)
   return (
     <>
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        <div className="relative flex-1">
+      <div className="grid grid-cols-[1fr_auto] gap-3 mb-5 sm:flex sm:flex-row">
+        <div className="relative col-span-2 sm:flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Buscar receta…"
@@ -282,7 +290,7 @@ export function RecetasList({ initialData, categories, salePriceFactor }: Props)
           />
         </div>
         <Select value={categoryFilter} onValueChange={(v) => v && setCategoryFilter(v)}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="min-w-0 sm:w-44">
             <SelectValue>
               {(v: string | null) =>
                 !v || v === "all"
@@ -302,91 +310,136 @@ export function RecetasList({ initialData, categories, salePriceFactor }: Props)
           onClick={() => { setFormErrors(null); setOpenCreate(true); }}
           className="gradient-brand text-white border-0 hover:opacity-90 shrink-0"
         >
-          <Plus className="w-4 h-4 mr-2" />
-          Nueva receta
+          <Plus className="w-4 h-4 sm:mr-2" />
+          <span className="hidden sm:inline">Nueva receta</span>
         </Button>
       </div>
 
-      {/* Table */}
-      <div className="border border-border rounded-2xl overflow-hidden bg-surface">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-accent/50 hover:bg-accent/50">
-              <TableHead className="font-medium">Nombre</TableHead>
-              <TableHead className="font-medium">Categoría</TableHead>
-              <TableHead className="font-medium">Rendimiento</TableHead>
-              <TableHead className="font-medium text-right">Costo total</TableHead>
-              <TableHead className="font-medium text-right">Costo/unidad</TableHead>
-              <TableHead className="font-medium text-right">Precio sugerido</TableHead>
-              <TableHead className="font-medium text-right">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
-                  {search || categoryFilter !== "all"
-                    ? "No se encontraron recetas."
-                    : "Todavía no hay recetas. Creá la primera."}
-                </TableCell>
-              </TableRow>
-            )}
+      {filtered.length === 0 ? (
+        <div className="border border-border rounded-2xl p-12 text-center text-muted-foreground text-sm bg-surface">
+          {search || categoryFilter !== "all"
+            ? "No se encontraron recetas."
+            : "Todavía no hay recetas. Creá la primera."}
+        </div>
+      ) : (
+        <>
+          {/* Lista — mobile */}
+          <div className="md:hidden border border-border rounded-2xl overflow-hidden divide-y divide-border bg-surface">
             {filtered.map((r) => {
               const costPerUnit = r.cost?.cost_per_unit ?? null;
               const suggestedPrice = costPerUnit != null ? costPerUnit * salePriceFactor : null;
               return (
-                <TableRow
+                <div
                   key={r.id}
-                  className={cn("cursor-pointer", !r.is_active && "opacity-50")}
+                  className={cn(
+                    "px-4 py-3 cursor-pointer active:bg-muted/30",
+                    !r.is_active && "opacity-50"
+                  )}
                   onClick={() => router.push(`/admin/recetas/${r.id}`)}
                 >
-                  <TableCell className="font-medium">{r.name}</TableCell>
-                  <TableCell>
-                    {r.category ? (
-                      <Badge variant="outline" className="text-xs">{r.category.name}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground/40 text-xs">—</span>
+                  <div className="flex items-start gap-2">
+                    <span className="font-medium text-sm flex-1 min-w-0">{r.name}</span>
+                    {r.category && (
+                      <Badge variant="outline" className="text-xs shrink-0">{r.category.name}</Badge>
                     )}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {r.yield_quantity} {YIELD_UNIT_LABELS[r.yield_unit] ?? r.yield_unit}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {r.cost ? formatPrice(r.cost.total_cost) : <span className="text-muted-foreground/40">—</span>}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
-                    {costPerUnit != null ? formatPrice(costPerUnit) : <span className="text-muted-foreground/40">—</span>}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-sm font-semibold text-primary">
-                    {suggestedPrice != null ? formatPrice(suggestedPrice) : <span className="text-muted-foreground/40 font-normal">—</span>}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                        onClick={() => router.push(`/admin/recetas/${r.id}`)}
-                        title="Ver receta"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => setDeleting(r)}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
+                    <button
+                      className="shrink-0 -mr-1 -mt-0.5 p-1 text-muted-foreground/60 hover:text-destructive"
+                      onClick={(e) => { e.stopPropagation(); setDeleting(r); }}
+                      title="Eliminar receta"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="mt-1.5 flex items-baseline justify-between gap-3">
+                    <span className="text-xs text-muted-foreground">
+                      {costPerUnit != null
+                        ? `Costo ${formatPrice(costPerUnit)} / ${YIELD_UNIT_SHORT[r.yield_unit] ?? r.yield_unit}`
+                        : "Sin costo"}
+                    </span>
+                    {suggestedPrice != null && (
+                      <span className="text-sm font-mono font-semibold text-primary shrink-0">
+                        Sug. {formatPrice(suggestedPrice)}
+                      </span>
+                    )}
+                  </div>
+                </div>
               );
             })}
-          </TableBody>
-        </Table>
-      </div>
+          </div>
+
+          {/* Tabla — desktop */}
+          <div className="hidden md:block border border-border rounded-2xl overflow-hidden bg-surface">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-accent/50 hover:bg-accent/50">
+                  <TableHead className="font-medium">Nombre</TableHead>
+                  <TableHead className="font-medium">Categoría</TableHead>
+                  <TableHead className="font-medium">Rendimiento</TableHead>
+                  <TableHead className="font-medium text-right">Costo total</TableHead>
+                  <TableHead className="font-medium text-right">Costo/unidad</TableHead>
+                  <TableHead className="font-medium text-right">Precio sugerido</TableHead>
+                  <TableHead className="font-medium text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((r) => {
+                  const costPerUnit = r.cost?.cost_per_unit ?? null;
+                  const suggestedPrice = costPerUnit != null ? costPerUnit * salePriceFactor : null;
+                  return (
+                    <TableRow
+                      key={r.id}
+                      className={cn("cursor-pointer", !r.is_active && "opacity-50")}
+                      onClick={() => router.push(`/admin/recetas/${r.id}`)}
+                    >
+                      <TableCell className="font-medium">{r.name}</TableCell>
+                      <TableCell>
+                        {r.category ? (
+                          <Badge variant="outline" className="text-xs">{r.category.name}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground/40 text-xs">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {r.yield_quantity} {YIELD_UNIT_LABELS[r.yield_unit] ?? r.yield_unit}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        {r.cost ? formatPrice(r.cost.total_cost) : <span className="text-muted-foreground/40">—</span>}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        {costPerUnit != null ? formatPrice(costPerUnit) : <span className="text-muted-foreground/40">—</span>}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm font-semibold text-primary">
+                        {suggestedPrice != null ? formatPrice(suggestedPrice) : <span className="text-muted-foreground/40 font-normal">—</span>}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                            onClick={() => router.push(`/admin/recetas/${r.id}`)}
+                            title="Ver receta"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            onClick={() => setDeleting(r)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </>
+      )}
 
       <p className="text-xs text-muted-foreground mt-3">
         {filtered.length} de {initialData.length} recetas · Factor de precio: ×{salePriceFactor}
