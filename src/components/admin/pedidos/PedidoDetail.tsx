@@ -40,7 +40,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Trash2, Plus, Loader2, ChevronRight, Pencil } from "lucide-react";
+import { ArrowLeft, Trash2, Plus, Loader2, ChevronRight, Pencil, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ARS = new Intl.NumberFormat("es-AR", {
@@ -492,6 +492,50 @@ export function PedidoDetail({
     });
   }
 
+  const [sharing, setSharing] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
+
+  async function handleShareBudget() {
+    setSharing(true);
+    setShareError(null);
+    try {
+      // Al compartir el presupuesto, si todavía está en borrador, se marca como presupuestado.
+      if (status === "borrador") {
+        setStatus("presupuestado");
+        const r = await updateOrderStatus(initialOrder.id, "presupuestado");
+        if ("error" in r) setStatus("borrador");
+      }
+
+      const res = await fetch(`/admin/pedidos/${initialOrder.id}/presupuesto`);
+      if (!res.ok) throw new Error("No se pudo generar el PDF");
+      const blob = await res.blob();
+      const filename = `Presupuesto ${initialOrder.order_number}.pdf`;
+      const file = new File([blob], filename, { type: "application/pdf" });
+
+      const nav = navigator as Navigator & { canShare?: (d?: ShareData) => boolean };
+      if (nav.canShare?.({ files: [file] })) {
+        await nav.share({
+          files: [file],
+          title: filename,
+          text: `Presupuesto ${initialOrder.order_number} — ${initialOrder.customer?.name ?? ""}`.trim(),
+        });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (e) {
+      if ((e as Error).name !== "AbortError") {
+        setShareError((e as Error).message || "Error al compartir el presupuesto");
+      }
+    } finally {
+      setSharing(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -513,6 +557,17 @@ export function PedidoDetail({
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap shrink-0">
+          {status !== "cancelado" && (
+            <Button
+              size="sm"
+              className="gradient-brand text-white border-0"
+              onClick={handleShareBudget}
+              disabled={sharing || items.length === 0}
+            >
+              {sharing ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5 mr-1.5" />}
+              Compartir presupuesto
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => setOpenEdit(true)}>
             <Pencil className="w-3.5 h-3.5 mr-1.5" />
             Editar
@@ -527,6 +582,10 @@ export function PedidoDetail({
           </Button>
         </div>
       </div>
+
+      {shareError && (
+        <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">{shareError}</p>
+      )}
 
       {/* Status flow */}
       <div className="border border-border rounded-2xl p-4">
