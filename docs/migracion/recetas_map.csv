@@ -1,0 +1,48 @@
+nombre_frecuentes,nombre_final,hoja_excel,categoria_slug,yield_quantity,yield_unit,accion,nota
+Alfajores Chocolate,Alfajores de Chocolate (3cm),Alfajores de Chocolate,alfajores,80,unidades,migrar,
+Alfajores Maicena,Alfajores de Maicena (3cm),Alfajores de Maicena,alfajores,80,unidades,migrar,
+Alfajores Mini Rogel,Alfajores Mini Rogel,MiniRogel,alfajores,80,unidades,migrar,
+Alfajores de Nuez,Alfajores de Nuez,Alfajores de Nuez,alfajores,60,unidades,migrar,
+Alfajores Choco-Nutella 4cm,Alfajores de Chocolate con Nutella (4cm),Alfajores de Chocolate 4 cm NUT,alfajores,,unidades,migrar,"rinde no está en la hoja - completar"
+Alfajores de Maicena 4 cm,Alfajores de Maicena (4cm),Alfajores de Maicena 4 cm,alfajores,70,unidades,migrar,
+Alfajores Chocolate 4cm,Alfajores de Chocolate (4cm),Alfajores de Chocolate 4 cm,alfajores,40,unidades,migrar,
+Brownies,Brownies (plancha),Brownies,brownies,60,porciones,migrar,
+Brownies DDL 24 cm MERENGUE,,,brownies,,,omitir,variante compuesta - fase posterior
+Brownies DDL 20 cm MERENGUE,,,brownies,,,omitir,variante compuesta - fase posterior
+Brownies Bariloche 24 cm,,,brownies,,,omitir,variante compuesta - fase posterior
+Brownies Bariloche 20 cm,,,brownies,,,omitir,variante compuesta - fase posterior
+Budín de Banana,Budín de Banana,Budin de Banana,budines,2,porciones,migrar,"rinde: 2 budines de 500g"
+Budín de Manzanas,Budín de Manzanas,Budin de Manzanas,budines,2,porciones,migrar,"rinde: 2 budines de 500g"
+Budin de Arandanos,Budín de Arándanos,Budin de Arandanos,budines,1,porciones,migrar,
+Cakepops,Cakepops,Cakepops,cakepops,36,unidades,migrar,
+Cookies Choco-chips,Cookies Choco-chips,Cookies Chocochips,cookies,66,unidades,migrar,
+Cookies de Pasas Y Nueces,Cookies de Pasas y Nueces,Cookies Pasas y Nueces,cookies,100,unidades,migrar,
+Cookies Choco Chips Rocklets,Cookies Choco Chips Rocklets,Cookies Vaini-Chips Rocklets,cookies,80,unidades,migrar,"confirmar que es esta hoja"
+Cookies Chip Taller,Cookies Chip (taller),Cookies Chip Taller,cookies,24,unidades,migrar,
+Brookies Cookies doble choco,Brookies (doble choco),Browkies - Cookies doble choco,cookies,34,unidades,migrar,
+Pepas,Pepas,Pepas,cookies,48,unidades,migrar,
+Masitas Manteca Vainilla,Masitas de Manteca,Masitas de Manteca,cookies,40,unidades,migrar,"categoría: ¿cookies u otra?"
+Donas de Chocolate,Donas de Chocolate,Donas de Chocolate,donas,36,unidades,migrar,
+Donas de Vinilla,Donas de Vainilla,Donas de Vainilla,donas,36,unidades,migrar,
+Espumita de Limón,Espumita de Limón (plancha 20x30),Espumita de Limon,postres,30,porciones,migrar,"categoría: ¿postres?"
+Pasta frola Dulce de Leche,Pastafrola de Dulce de Leche,Pastafrola Dulce de Leche,mini-pasteleria,2,porciones,migrar,
+Pasta frola Membrillo (2 Planchas),Pastafrola de Membrillo,Pastafrola Membrillo,mini-pasteleria,60,porciones,migrar,
+Mini Frola Membrillo,Mini Frola de Membrillo,Minifrola-Membrillo,mini-pasteleria,15,unidades,migrar,"de 8 cm"
+Mini Frola DDL,Mini Frola de Dulce de Leche,Minifrola-DDL,mini-pasteleria,15,unidades,migrar,"de 8 cm"
+Mini Frola DDL + Coco,Mini Frola de DDL y Coco,Minifrola-DDL-Coco,mini-pasteleria,15,unidades,migrar,"de 8 cm"
+Mini Frola Manzana,Mini Frola de Manzana,Minifrola-Manzana,mini-pasteleria,15,unidades,migrar,"de 8 cm"
+Tarta de Coco,Tarta de Coco (placa 20x30),Tarta de Coco placa 20x30,mini-pasteleria,30,porciones,migrar,
+Cascaritas 100 gr,Cascaritas (100g),Cascaritas,bombones,1,porciones,migrar,"categoría: ¿bombones?"
+Nuez Chocolate,Bombón de Nuez con Chocolate,Bombon Nuez con Chocolate,bombones,1,unidades,migrar,"rinde: revisar"
+Torta Galesa,Torta Galesa,Torta Galesa,tortas,2,porciones,migrar,
+Torta Manteca ODRA,Torta de Manteca ODRA,Torta Manteca ODRA,tortas,1,porciones,migrar,"es base para tortas compuestas"
+Crema Bariloche,Crema Bariloche,Crema Bariloche,tortas,1,porciones,migrar,"es intermedio"
+Butter Cream ODRA,Butter Cream ODRA,Butter Cream Odra,tortas,1,porciones,migrar,"es intermedio"
+Ganache,Ganache,Ganache,tortas,1,porciones,omitir,"hoja tiene #REF! - fase posterior"
+Genoise,Genoise,Genoise,tortas,1,porciones,migrar,"es intermedio"
+Torta Butter Cream 18 cm,,,tortas,,,omitir,compuesta (ODRA + Butter Cream + DDL) - fase posterior
+Torta Butter Cream 15 cm,,,tortas,,,omitir,compuesta - fase posterior
+Torta Forrada 20 cm,,,tortas,,,omitir,compuesta (ODRA + Choc + Ganache) - fase posterior
+Torta Forrada 15 cm,,,tortas,,,omitir,compuesta - fase posterior
+Torta Forrada 18 cm,,,tortas,,,omitir,compuesta - fase posterior
+Torta Number,,,tortas,,,omitir,compuesta (Merengue + Genoise) - fase posterior

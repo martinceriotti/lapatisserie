@@ -17,14 +17,15 @@ ROOT = Path(__file__).resolve().parents[2]
 XLSX = ROOT / "docs" / "Costos Pattiserie Septiembre 2024.xlsx"
 OUT = Path(__file__).resolve().parent / "_extract.json"
 
-FOOTER_KEYS = {
-    "cantidad de masitas",
-    "cantidad de porciones",
-    "costo receta",
-    "costo docena",
-    "costo individual",
-    "cantidad de recetas:",
-}
+def is_footer_label(label: str) -> bool:
+    low = label.strip().lower()
+    # Filas de resumen al pie de cada hoja.
+    if low.startswith("costo"):            # Costo Receta / Docena / Individual / por unidad
+        return True
+    # "Cantidad de Masitas/Porciones/Alfajores", "Cantidad " — el rinde de la receta.
+    # "Cantidad de Recetas:" es el multiplicador, no el rinde: no es footer de ingredientes
+    # pero tampoco un ingrediente, así que también lo tratamos como footer.
+    return low.startswith("cantidad")
 
 
 def main() -> None:
@@ -64,7 +65,7 @@ def main() -> None:
         footer = {}
         for r in rows[1:]:
             label = r[1] or ""
-            if isinstance(label, str) and label.strip().lower() in FOOTER_KEYS:
+            if isinstance(label, str) and label.strip() and is_footer_label(label):
                 footer[label.strip()] = {
                     "una_receta": r[2],
                     "por_cantidad": r[3],
