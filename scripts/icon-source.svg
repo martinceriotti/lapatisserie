@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#8B1E3F"/>
+  <g transform="translate(0 30)">
+    <!-- Cupcake wrapper -->
+    <path d="M168 300 L196 452 H316 L344 300 Z" fill="#F7F0E6"/>
+    <path d="M204 300 L216 452 M256 300 V452 M308 300 L296 452"
+          stroke="#8B1E3F" stroke-width="7" stroke-linecap="round" opacity="0.35"/>
+    <!-- Frosting -->
+    <path d="M136 300 C136 214 376 214 376 300 Z" fill="#F7F0E6"/>
+    <ellipse cx="256" cy="232" rx="92" ry="60" fill="#F7F0E6"/>
+    <ellipse cx="256" cy="180" rx="68" ry="44" fill="#F7F0E6"/>
+    <ellipse cx="256" cy="134" rx="44" ry="32" fill="#F7F0E6"/>
+    <!-- Cherry -->
+    <path d="M256 104 Q286 74 286 44" stroke="#C99A3E" stroke-width="10" stroke-linecap="round" fill="none"/>
+    <circle cx="288" cy="40" r="28" fill="#C99A3E"/>
+    <circle cx="279" cy="31" r="8" fill="#E8C77E"/>
+  </g>
+</svg>

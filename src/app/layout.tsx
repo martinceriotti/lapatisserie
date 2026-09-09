@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display, DM_Sans, Great_Vibes, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -50,6 +50,17 @@ export const metadata: Metadata = {
     locale: "es_AR",
     type: "website",
   },
+  appleWebApp: {
+    capable: true,
+    title: "La Patisserie",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#FEFCF9",
 };
 
 export default function RootLayout({
