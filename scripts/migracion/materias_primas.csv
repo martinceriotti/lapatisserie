@@ -1,0 +1,54 @@
+nombre_excel,nombre_final,unit,category,current_price,REVISAR,xls_per_kg,xls_per_gram
+Manteca,Manteca,kg,dairy,11000,,11000,11
+Harina 0000,Harina 0000,kg,flour,1100,,1100,1.1
+Azucar Impalpable,Azúcar Impalpable,kg,sugar,1500,,1500,1.5
+Cacao,Cacao,kg,chocolate,25000,,25000,25
+Huevo (unidad),Huevo,unidad,eggs,210,,210,210
+Azucar Comun,Azúcar Común,kg,sugar,1400,,1400,1.4
+Maizena,Maizena,kg,flour,2100,,2100,2.1
+Chocolate Taza,Chocolate Taza,kg,chocolate,26000,,26000,26
+Nueces,Nueces,kg,nuts,22000,,22000,22
+Dulce de Leche,Dulce de Leche,kg,dairy,5000,,5000,5
+Crema,Crema,l,dairy,10000,,10000,10
+Harina Leudante,Harina Leudante,kg,flour,2100,,2100,2.1
+Limon,Limón,unidad,fruit,500,,500,500
+Bicarbonato,Bicarbonato,kg,powders,900,,900,0.9
+Polvo Hornear,Polvo de Hornear,kg,powders,4000,,4000,4
+Leche,Leche,l,dairy,2500,,2500,2.5
+Conac,Coñac,l,other,26667,"botella 750cc $20000 -> 26667/l",10000,13.333
+Naranja,Naranja,unidad,fruit,500,,500,500
+Azucar Negro,Azúcar Negro,kg,sugar,2300,,2300,2.3
+Chocolate Alfajores,Chocolate Alfajores,kg,chocolate,10000,,10000,10
+Ciruelas,Ciruelas,kg,fruit,6807,,6807,6.807
+Pasas,Pasas de Uva,kg,fruit,4821,,4821,4.821
+Yogur,Yogur,kg,dairy,21053,"pote 190g $4000 -> 21053/kg",1200,1200
+Chocochips,Chips de Chocolate,kg,chocolate,8000,,8000,8
+Leche Condensada (Unidad),Leche Condensada,unidad,dairy,4500,,170,170
+Gelatina SS (Unidad),Gelatina sin Sabor,sobre,powders,2000,"sobre 20g $2000",6,6
+Frutos Rojos,Frutos Rojos,kg,fruit,20000,,150,0.15
+Vasitos,Vasitos,unidad,packaging,3,,3,0.003
+Pasta de Forrar,Pasta de Forrar,kg,other,6000,,6000,6
+Bandeja,Bandeja,unidad,packaging,20,,1,20
+Goma Eva,Goma Eva,unidad,packaging,15,,1,15
+Cinta,Cinta,unidad,packaging,15,,1,15
+Pirotines,Pirotines,unidad,packaging,1.25,,12,1.25
+Peras,Peras,unidad,fruit,600,"REVISAR: Excel inconsistente kg=600 vs g=10",600,10
+Palitos,Palitos (cakepop),unidad,packaging,5,,5,5
+Queso Crema,Queso Crema,kg,dairy,9000,,9000,9
+Pasta de Goma,Pasta de Goma,kg,other,7000,,7000,7
+Mix Europeo,Mix Europeo,kg,fruit,23000,,600,0.6
+Aceite,Aceite,l,other,1200,,1200,1.2
+Rocklets,Rocklets,kg,chocolate,12500,,12500,12.5
+Levadura,Levadura,sobre,powders,25,,25,25
+Coco Rayado,Coco Rayado,kg,other,12000,,12000,12
+Dulce Membrillo,Dulce de Membrillo,kg,fruit,6000,,6000,6
+Oreo,Oreo (tripack x36),unidad,other,6322,"tripack 3x12 = 36 galletas $6322",4300,130.303
+Nutella,Nutella,kg,chocolate,33333,"pote 360g $12000 -> 33333/kg",860,0.86
+Esencia de Vainilla,Esencia de Vainilla,l,other,26520,,26520,26.52
+Manzana,Manzana,unidad,fruit,600,,600,600
+Arandanos,Arándanos,kg,fruit,3325,,3325,3.325
+Almendras,Almendras,kg,nuts,9900,,9900,9.9
+Miel,Miel,kg,other,8000,,8000,8
+Mani,Maní,kg,nuts,2600,,2600,2.6
+Pasta de Mani,Pasta de Maní,kg,nuts,6300,,6300,6.3
+Bano Moldeo (pins),Baño de Moldeo,kg,chocolate,11667,,11667,11.667
