@@ -386,22 +386,26 @@ export async function addOrderItem(
   quantity: number,
   unitPrice: number,
   customization: string
-): Promise<ActionResult> {
+): Promise<ActionResult & { id?: string }> {
   const supabase = createAdminClient();
-  const { error } = await supabase.from("order_items").insert([{
-    order_id: orderId,
-    raw_material_id: rawMaterialId,
-    recipe_id: recipeId,
-    description,
-    quantity,
-    unit_price: unitPrice,
-    customization: customization || null,
-  }]);
+  const { data, error } = await supabase
+    .from("order_items")
+    .insert([{
+      order_id: orderId,
+      raw_material_id: rawMaterialId,
+      recipe_id: recipeId,
+      description,
+      quantity,
+      unit_price: unitPrice,
+      customization: customization || null,
+    }])
+    .select("id")
+    .single();
   if (error) return { error: error.message };
 
   await recalcTotals(supabase, orderId);
   revalidatePath(`/admin/pedidos/${orderId}`);
-  return { success: true };
+  return { success: true, id: data.id };
 }
 
 export async function removeOrderItem(

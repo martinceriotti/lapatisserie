@@ -131,7 +131,7 @@ function AddItemForm({
         return;
       }
       onAdded({
-        id: crypto.randomUUID(),
+        id: result.id ?? crypto.randomUUID(),
         order_id: orderId,
         raw_material_id: isRecipe ? null : linkedId,
         recipe_id: isRecipe ? linkedId : null,
