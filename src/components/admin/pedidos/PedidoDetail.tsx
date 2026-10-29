@@ -18,7 +18,7 @@ import {
   type OrderStatus,
   type PaymentStatus,
 } from "@/lib/actions/pedidos";
-import { STATUS_LABELS, STATUS_FLOW, PAYMENT_LABELS } from "@/lib/constants/pedidos";
+import { STATUS_LABELS, STATUS_FLOW, PAYMENT_LABELS, itemSubtotal } from "@/lib/constants/pedidos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,6 +84,8 @@ function AddItemForm({
   const [freeDescription, setFreeDescription] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [unitPrice, setUnitPrice] = useState(0);
+  // Total del ítem: se puede escribir directo y el precio unitario se calcula solo.
+  const [lineTotal, setLineTotal] = useState(0);
   const [customization, setCustomization] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -95,7 +97,22 @@ function AddItemForm({
   function handleProductChange(id: string | null) {
     setProductId(id ?? "");
     const p = products.find((p) => p.id === id);
-    setUnitPrice(p?.sale_price ?? 0);
+    handleUnitPriceChange(p?.sale_price ?? 0);
+  }
+
+  function handleQuantityChange(q: number) {
+    setQuantity(q);
+    setLineTotal(Math.round(q * unitPrice));
+  }
+
+  function handleUnitPriceChange(price: number) {
+    setUnitPrice(price);
+    setLineTotal(Math.round(quantity * price));
+  }
+
+  function handleLineTotalChange(total: number) {
+    setLineTotal(total);
+    setUnitPrice(quantity > 0 ? Math.round((total / quantity) * 100) / 100 : 0);
   }
 
   function reset() {
@@ -103,6 +120,7 @@ function AddItemForm({
     setFreeDescription("");
     setQuantity(1);
     setUnitPrice(0);
+    setLineTotal(0);
     setCustomization("");
   }
 
@@ -211,7 +229,7 @@ function AddItemForm({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Cantidad</Label>
           <Input
@@ -219,7 +237,7 @@ function AddItemForm({
             min="1"
             step="1"
             value={quantity}
-            onChange={(e) => setQuantity(Number(e.target.value))}
+            onChange={(e) => handleQuantityChange(Number(e.target.value))}
           />
         </div>
 
@@ -232,7 +250,22 @@ function AddItemForm({
               min="0"
               step="0.01"
               value={unitPrice}
-              onChange={(e) => setUnitPrice(Number(e.target.value))}
+              onChange={(e) => handleUnitPriceChange(Number(e.target.value))}
+              className="pl-7"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <Label className="text-xs">Total del ítem</Label>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+            <Input
+              type="number"
+              min="0"
+              step="1"
+              value={lineTotal}
+              onChange={(e) => handleLineTotalChange(Number(e.target.value))}
               className="pl-7"
             />
           </div>
@@ -361,10 +394,10 @@ export function PedidoDetail({
   const [items, setItems] = useState<OrderItem[]>(initialOrder.items);
   const [status, setStatus] = useState<OrderStatus>(initialOrder.status);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(initialOrder.payment_status);
-  const [subtotal, setSubtotal] = useState(Number(initialOrder.subtotal));
   const [discount, setDiscount] = useState(Number(initialOrder.discount));
 
-  const initTotal = Number(initialOrder.total ?? Number(initialOrder.subtotal) - Number(initialOrder.discount));
+  const initTotal =
+    initialOrder.items.reduce((sum, i) => sum + itemSubtotal(i), 0) - Number(initialOrder.discount);
   const initSuggestedDeposit = Math.round((initTotal * depositPct) / 100);
   const [depositAmount, setDepositAmount] = useState<number>(
     initialOrder.deposit_amount != null ? Number(initialOrder.deposit_amount) : initSuggestedDeposit
@@ -382,6 +415,7 @@ export function PedidoDetail({
   const [openEdit, setOpenEdit] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  const subtotal = items.reduce((sum, i) => sum + itemSubtotal(i), 0);
   const total = subtotal - discount;
   const suggestedDeposit = Math.round(total * depositPct / 100);
 
@@ -392,8 +426,7 @@ export function PedidoDetail({
 
   function handleAddItem(item: OrderItem) {
     setItems((prev) => [...prev, item]);
-    const newSubtotal = subtotal + item.quantity * item.unit_price;
-    setSubtotal(newSubtotal);
+    const newSubtotal = subtotal + itemSubtotal(item);
     if (!depositManual) {
       setDepositAmount(Math.round((newSubtotal - discount) * depositPct / 100));
     }
@@ -403,8 +436,7 @@ export function PedidoDetail({
     const item = items.find((i) => i.id === itemId);
     if (!item) return;
     setItems((prev) => prev.filter((i) => i.id !== itemId));
-    const newSubtotal = subtotal - item.quantity * item.unit_price;
-    setSubtotal(newSubtotal);
+    const newSubtotal = subtotal - itemSubtotal(item);
     if (!depositManual) {
       setDepositAmount(Math.round((newSubtotal - discount) * depositPct / 100));
     }
@@ -692,7 +724,7 @@ export function PedidoDetail({
                       <td className="py-2.5 text-center">{item.quantity}</td>
                       <td className="py-2.5 text-right font-mono text-xs">{ARS.format(item.unit_price)}</td>
                       <td className="py-2.5 text-right font-mono font-semibold text-xs">
-                        {ARS.format(item.quantity * item.unit_price)}
+                        {ARS.format(itemSubtotal(item))}
                       </td>
                       <td className="py-2.5 text-right">
                         <button

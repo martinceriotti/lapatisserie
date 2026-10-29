@@ -1,6 +1,7 @@
 import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
 import { NEGOCIO, PRESUPUESTO_VALIDEZ_DIAS } from "@/lib/constants/negocio";
 import type { OrderWithItems } from "@/lib/actions/pedidos";
+import { itemSubtotal } from "@/lib/constants/pedidos";
 
 const WINE = "#8B1E3F";
 const INK = "#2A2A2A";
@@ -11,6 +12,7 @@ const ARS = new Intl.NumberFormat("es-AR", {
   style: "currency",
   currency: "ARS",
   minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
 });
 
 function fecha(d: string | null) {
@@ -118,7 +120,7 @@ export function PresupuestoPDF({
   order: OrderWithItems;
   depositPct: number;
 }) {
-  const subtotal = Number(order.subtotal);
+  const subtotal = order.items.reduce((sum, it) => sum + itemSubtotal(it), 0);
   const discount = Number(order.discount);
   const total = subtotal - discount;
   const deposit =
@@ -178,7 +180,7 @@ export function PresupuestoPDF({
             </View>
             <Text style={s.cQty}>{it.quantity}</Text>
             <Text style={s.cUnit}>{ARS.format(Number(it.unit_price))}</Text>
-            <Text style={s.cSub}>{ARS.format(Number(it.quantity) * Number(it.unit_price))}</Text>
+            <Text style={s.cSub}>{ARS.format(itemSubtotal(it))}</Text>
           </View>
         ))}
 

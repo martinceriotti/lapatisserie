@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod";
-import type { OrderStatus, PaymentStatus } from "@/lib/constants/pedidos";
+import { itemSubtotal, type OrderStatus, type PaymentStatus } from "@/lib/constants/pedidos";
 export type { OrderStatus, PaymentStatus } from "@/lib/constants/pedidos";
 
 export type ActionResult = { success: true } | { error: Record<string, string[]> | string };
@@ -70,10 +70,7 @@ async function recalcTotals(supabase: ReturnType<typeof createAdminClient>, orde
     .select("quantity, unit_price")
     .eq("order_id", orderId);
 
-  const subtotal = (items ?? []).reduce(
-    (sum, i) => sum + Number(i.quantity) * Number(i.unit_price),
-    0
-  );
+  const subtotal = (items ?? []).reduce((sum, i) => sum + itemSubtotal(i), 0);
 
   await supabase
     .from("orders")
